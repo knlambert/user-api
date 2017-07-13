@@ -4,6 +4,7 @@ from .db_manager import DBManager
 from .authentication import Authentication
 from functools import wraps
 from flask import request, jsonify, Blueprint
+import base64
 import re
 import json
 
