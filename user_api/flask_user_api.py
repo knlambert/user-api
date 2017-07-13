@@ -150,7 +150,6 @@ class FlaskUserApi(object):
                 }),
 
         @user_api_blueprint.route(u'/token/check/', methods=[u"POST"])
-        @self.is_connected
         def check():
             try:
                 data = json.loads(request.data, encoding=u"utf-8")
