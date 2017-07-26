@@ -15,8 +15,8 @@ user_api = UserApi(
     db_user=u"root",
     db_passwd=u"localroot1234",
     db_name=u"user_api",
-    jwt_secret=CONFIG[u"auth"][u"token"][u"secret"],
-    jwt_lifetime=CONFIG[u"auth"][u"token"][u"lifetime"]
+    jwt_secret=CONFIG[u"user-api"][u"jwt_secret"],
+    jwt_lifetime=CONFIG[u"user-api"][u"jwt_lifetime"]
 )
 
 # Use flask shortcut
