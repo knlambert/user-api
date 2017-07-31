@@ -4,7 +4,6 @@
 from flask import Flask
 from user_api.user_api import UserApi 
 from user_api.flask_user_api import FlaskUserApi 
-from config import CONFIG
 
 # create flask server
 app = Flask(__name__)
@@ -15,10 +14,9 @@ user_api = UserApi(
     db_user=u"root",
     db_passwd=u"localroot1234",
     db_name=u"user_api",
-    jwt_secret=CONFIG[u"user-api"][u"jwt_secret"],
-    jwt_lifetime=CONFIG[u"user-api"][u"jwt_lifetime"]
+    jwt_secret=u"DUMMY",
+    jwt_lifetime=30 * 24 * 3600
 )
-
 # Use flask shortcut
 flask_user_api = FlaskUserApi(user_api)
 

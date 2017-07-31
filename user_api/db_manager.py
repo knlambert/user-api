@@ -1,30 +1,40 @@
 # -*- coding: utf-8 -*-
+
 import logging
 
 
 class DBManager:
+
     def __init__(
-        self,
-        db_driver,
-        db_host,
-        db_user,
-        db_passwd,
-        db_name
-    ):
+            self,
+            db_driver,
+            db_user,
+            db_passwd,
+            db_name,
+            db_host=None,
+            db_unix_socket=None
+        ):
         self.__db_driver = db_driver
         self._db_host = db_host
+        self._db_unix_socket = db_unix_socket
         self._db_user = db_user
         self._db_passwd = db_passwd
         self._db_name = db_name
+        self._db = None
 
     def _connect(self):
-        self._db = self.__db_driver.connect(
-            host=self._db_host,
-            user=self._db_user,
-            passwd=self._db_passwd,
-            db=self._db_name,
-            charset=u"utf8"
-        )
+
+        params = {
+            u"user": self._db_user,
+            u"passwd": self._db_passwd,
+            u"db": self._db_name,
+            u"charset": u"utf8"
+        }
+        if self._db_host:
+            params[u"host"] = self._db_host
+        else:
+            params[u"unix_socket"] = self._db_unix_socket
+        self._db = self.__db_driver.connect(**params)
 
     def _disconnect(self):
         self._db.close()

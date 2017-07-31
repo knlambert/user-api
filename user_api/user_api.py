@@ -10,10 +10,11 @@ class UserApi(object):
 
     def __init__(
         self,
-        db_host=u"127.0.0.1",
+        db_host=None,
         db_user=None,
         db_passwd=None,
         db_name=u"user_api",
+        db_unix_socket=None,
         jwt_secret=None,
         jwt_lifetime=3600 * 24 * 60,
         db_manager=None,
@@ -23,6 +24,7 @@ class UserApi(object):
         self.db_manager = db_manager or DBManager(
             MySQLdb,
             db_host=db_host,
+            db_unix_socket=db_unix_socket,
             db_user=db_user,
             db_passwd=db_passwd,
             db_name=db_name
