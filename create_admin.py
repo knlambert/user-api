@@ -2,8 +2,6 @@
 
 from user_api.db_manager import DBManager
 from user_api.authentication import Authentication
-from user_api.decorator import is_connected
-from config import CONFIG
 import MySQLdb
 
 # Init DB Manager
@@ -16,8 +14,8 @@ db_manager = DBManager(
 )
 # Init Auth Manager
 auth = Authentication(
-    jwt_secret=CONFIG[u"auth"][u"token"][u"secret"],
-    jwt_lifetime=CONFIG[u"auth"][u"token"][u"lifetime"]
+    jwt_secret=u"DUMMY",
+    jwt_lifetime=30 * 24 * 3600
 )
 
 salt = auth.generate_salt()
