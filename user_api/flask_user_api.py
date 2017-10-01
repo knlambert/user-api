@@ -152,7 +152,7 @@ class FlaskUserApi(object):
                     u"message": u"Missing parameters."
                 }),
 
-        @user_api_blueprint.route(u'/me', methods=[u"POST"])
+        @user_api_blueprint.route(u'/me', methods=[u"GET"])
         @self.is_connected
         def me():
             if u"user-api-credentials" in request.cookies:
