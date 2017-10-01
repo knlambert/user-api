@@ -78,7 +78,7 @@ class FlaskUserApi(object):
                         u"user-api-credentials",
                         value=base64.b64encode(token.encode(u"utf8")),
                         httponly=True,
-                        expires=token[u"exp"]
+                        expires=payload[u"exp"]
                     )
 
                     return response, 200
