@@ -41,7 +41,7 @@ class FlaskUserApi(object):
                             return jsonify({
                                 u"message": u"Forbidden."
                             }), 403
-                            
+
                     # If all right, do call function
                 ret = funct(*args, **kwargs)
                 return ret
