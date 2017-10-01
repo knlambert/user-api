@@ -68,7 +68,7 @@ class FlaskUserApi(object):
                     )
 
                     if valid:
-                        payload = self.user_api.db_manager.get_user_informations(email=email)
+                        payload = self.user_api.db_manager.get_user_information(email=email)
                         token = self.user_api.authentication.generate_token(payload)
                     else:
                         raise ValueError(u"Wrong password")
@@ -107,7 +107,7 @@ class FlaskUserApi(object):
                     hash = self.user_api.authentication.generate_hash(password, salt)
 
                     self.user_api.db_manager.modify_hash_salt(email, hash, salt)
-                    payload = self.user_api.db_manager.get_user_informations(email=email)
+                    payload = self.user_api.db_manager.get_user_information(email=email)
                     if payload is None:
                         raise ValueError(u"User '{}' doesn't exist.".format(email))
 

@@ -7,7 +7,6 @@ from .db_manager import DBManager
 
 class UserApi(object):
 
-
     def __init__(
         self,
         db_host=None,
