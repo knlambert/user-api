@@ -21,7 +21,5 @@ then
     logger -s -t [INFO] "remove ${CURRENT_PATH}/node_modules"
     rm -rf "${CURRENT_PATH}/node_modules"
 fi
-logger -s -t [INFO] "Installing NPM packages..."
-npm install || logger -s -t [ERROR] "Failed to install packages."
 # Done
 logger -s -t [INFO] "Setup script is over."
