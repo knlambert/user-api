@@ -1,7 +1,5 @@
 # coding: utf-8
 
-from .db_manager import DBManager
-from .authentication import Authentication
 from functools import wraps
 from flask import request, jsonify, Blueprint
 import base64
@@ -19,6 +17,7 @@ class FlaskUserApi(object):
         def wrapper(*args, **kwargs):
             # These two endpoint do not hae self.user_api.authentication.
             if request.endpoint not in [u'user_api.authentify']:
+
                 if u"Authorization" in request.headers:
                     authorization = request.headers.get(u"Authorization")
                     m = re.search(u"Bearer (\S+)", authorization)
@@ -27,10 +26,9 @@ class FlaskUserApi(object):
                         return jsonify({
                             u"Message": u"Invalid token."
                         }), 401
-                elif u"credentials" in request.cookies:
-                    decoded = base64.b64decode(request.cookies.get('credentials'))
-                    credentials = json.loads(decoded)
-                    if not self.user_api.authentication.is_token_valid(credentials.get('token')):
+                elif u"user-api-credentials" in request.cookies:
+                    decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
+                    if not self.user_api.authentication.is_token_valid(decoded_token):
                         return jsonify({
                             u"Message": u"Invalid token."
                         }), 401
@@ -47,8 +45,8 @@ class FlaskUserApi(object):
     def construct_blueprint(self):
         user_api_blueprint = Blueprint(u'user_api', __name__)
 
-        @user_api_blueprint.route(u'/authentify', methods=[u"POST"])
-        def authentify():
+        @user_api_blueprint.route(u'/login', methods=[u"POST"])
+        def login():
             try:
                 data = json.loads(request.data, encoding=u"utf-8")
             except ValueError:
@@ -75,9 +73,14 @@ class FlaskUserApi(object):
                     else:
                         raise ValueError(u"Wrong password")
 
-                    return jsonify({
-                        u"token": token
-                    }), 200
+                    response = jsonify(payload)
+                    response.set_cookie(
+                        u"user-api-credentials",
+                        value=base64.b64encode(token.encode(u"utf8")),
+                        httponly=True)
+
+                    return response, 200
+
                 except ValueError:
                     return jsonify({
                         u"message": u"Wrong login or / and password."
@@ -87,7 +90,7 @@ class FlaskUserApi(object):
                     u"message": u"Missing parameters."
                 }), 422
 
-        @user_api_blueprint.route(u'/reset_password', methods=[u'POST'])
+        @user_api_blueprint.route(u'/reset-password', methods=[u'POST'])
         @self.is_connected
         def reset_password():
             try:
@@ -105,14 +108,13 @@ class FlaskUserApi(object):
 
                     self.user_api.db_manager.modify_hash_salt(email, hash, salt)
                     payload = self.user_api.db_manager.get_user_informations(email=email)
-                    token = self.user_api.authentication.generate_token(payload)
+                    if payload is None:
+                        raise ValueError(u"User '{}' doesn't exist.".format(email))
 
+                    return jsonify(payload), 200
+                except ValueError as e:
                     return jsonify({
-                        u"token": token
-                    }), 200
-                except ValueError:
-                    return jsonify({
-                        u"message": u"Wrong login or / and password."
+                        u"message": e.message
                     }), 401
             else:
                 return jsonify({
@@ -150,26 +152,12 @@ class FlaskUserApi(object):
                     u"message": u"Missing parameters."
                 }),
 
-        @user_api_blueprint.route(u'/token/check/', methods=[u"POST"])
-        def check():
-            try:
-                data = json.loads(request.data, encoding=u"utf-8")
-            except ValueError:
-                return jsonify({
-                    u"message": u"Invalid JSON."
-                }), 422
-            if u"token" in data:
-                decoded = self.user_api.authentication.get_token_data(data[u"token"])
-                if decoded is not None:
-                    return jsonify(decoded), 200
-                else:
-                    return jsonify({
-                        u"message": u"Invalid token."
-                    }), 401
-            else:
-                return jsonify({
-                    u"message": u"Missing parameters."
-                }), 422
+        @user_api_blueprint.route(u'/me', methods=[u"POST"])
+        @self.is_connected
+        def me():
+            if u"user-api-credentials" in request.cookies:
+                decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
+                return jsonify(self.user_api.authentication.get_token_data(decoded_token)), 200
 
         return user_api_blueprint
 

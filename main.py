@@ -7,6 +7,7 @@ from user_api.flask_user_api import FlaskUserApi
 
 # create flask server
 app = Flask(__name__)
+app.debug = True
 
 # Create user api object
 user_api = UserApi(
@@ -23,7 +24,7 @@ flask_user_api = FlaskUserApi(user_api)
 # Register the blueprint
 app.register_blueprint(
     flask_user_api.construct_blueprint(), 
-    url_prefix=u"/api/user"
+    url_prefix=u"/api/users"
 )
 
 # Run flask server
