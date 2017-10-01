@@ -77,7 +77,9 @@ class FlaskUserApi(object):
                     response.set_cookie(
                         u"user-api-credentials",
                         value=base64.b64encode(token.encode(u"utf8")),
-                        httponly=True)
+                        httponly=True,
+                        expires=token[u"exp"]
+                    )
 
                     return response, 200
 
@@ -158,6 +160,21 @@ class FlaskUserApi(object):
             if u"user-api-credentials" in request.cookies:
                 decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
                 return jsonify(self.user_api.authentication.get_token_data(decoded_token)), 200
+
+        @user_api_blueprint.route(u'/logout', methods=[u"GET"])
+        @self.is_connected
+        def logout():
+            if u"user-api-credentials" in request.cookies:
+                response = jsonify({
+                    u"message": u"User disconnected."
+                })
+                response.set_cookie(
+                    u"user-api-credentials",
+                    value=u"",
+                    httponly=True,
+                    expires=0
+                )
+                return response, 200
 
         return user_api_blueprint
 
