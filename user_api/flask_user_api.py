@@ -2,6 +2,7 @@
 
 from functools import wraps
 from flask import request, jsonify, Blueprint, redirect
+from .flask_utils import flask_check_args
 import base64
 import re
 import json
@@ -183,6 +184,29 @@ class FlaskUserApi(object):
                     expires=0
                 )
                 return response, 200
+
+        @user_api_blueprint.route(u'/', methods=[u"GET"])
+        @self.is_connected()
+        @flask_check_args({
+            u"limit": {
+                u"type": u"integer",
+                u"default": 20,
+                u"coerce": int
+            },
+            u"offset": {
+                u"type": u"integer",
+                u"default": 0,
+                u"coerce": int
+            },
+            u"email": {
+                u"type": u"string"
+            },
+            u"name": {
+                u"type": u"string"
+            }
+        })
+        def list_users(args):
+            return jsonify(self.user_api.list_users(**args)), 200
 
         return user_api_blueprint
 
