@@ -165,3 +165,47 @@ class DBManager:
         if len(rows) == 0:
             return False
         return hash == rows[0][0]
+
+    def list_users(self, limit=20, offset=0, email=None, name=None):
+        """
+        List the users from the API.
+        Args:
+            limit (int): The max number of returned users.
+            offset (int): The cursor.
+            email (unicode): An email to filter on.
+            name (unicode): A name to filter on.
+
+        Returns:
+            (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
+        """
+        where_q, where_v = [], []
+        if email:
+            where_q.append(u"email LIKE %s")
+            where_v.append(u"%{}%".format(email))
+
+        if name:
+            where_q.append(u"name LIKE %s")
+            where_v.append(u"%{}%".format(name))
+
+        if len(where_q) > 0:
+            where_q = [u"WHERE "] + [u" AND ".join(where_q)]
+
+        rows, _ = self._execute(
+            query=u"SELECT id, email, name FROM user {} LIMIT %s OFFSET %s".format(u"".join(where_q)),
+            values=where_v + [limit+1, offset]
+        )
+
+        has_next = len(rows) > limit - 1
+        rows = rows if not has_next else rows[:-1]
+        return {
+            u"users": [
+                {
+                    u"id": row[0],
+                    u"email": row[1],
+                    u"name": row[2]
+                }
+                for row in rows
+            ],
+            u"has_next": has_next
+        }
+
