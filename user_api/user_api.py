@@ -1,8 +1,9 @@
 # coding: utf-8
 
 import MySQLdb
+from .db_manager import DBManager
 from .authentication import Authentication
-from .db_manager import DBManager 
+from .adapter.flask_adapter import FlaskAdapter
 
 
 class UserApi(object):
@@ -41,7 +42,6 @@ class UserApi(object):
         Returns:
             (FlaskAdapter): The adapter.
         """
-        from .adapter.flask_adapter import FlaskAdapter
         return FlaskAdapter(self.db_manager, self.authentication)
 
 
