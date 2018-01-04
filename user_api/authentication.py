@@ -9,8 +9,14 @@ from jwt.contrib.algorithms.pycrypto import RSAAlgorithm
 from jwt.contrib.algorithms.py_ecdsa import ECAlgorithm
 
 # Force compatibility with appengine (legacy mode).
-jwt.register_algorithm(u'RS256', RSAAlgorithm(RSAAlgorithm.SHA256))
-jwt.register_algorithm(u'ES256', ECAlgorithm(ECAlgorithm.SHA256))
+try:
+    jwt.register_algorithm(u'RS256', RSAAlgorithm(RSAAlgorithm.SHA256))
+except ValueError:
+    pass
+try:
+    jwt.register_algorithm(u'ES256', ECAlgorithm(ECAlgorithm.SHA256))
+except ValueError:
+    pass
 
 
 class Authentication:
