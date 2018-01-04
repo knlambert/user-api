@@ -8,6 +8,8 @@ setup(
     install_requires=[
         u"ecdsa",
         u'flask',
-        u"PyJWT"
+        u"PyJWT",
+        u"sqlalchemy",
+        u"cerberus"
     ]
 )

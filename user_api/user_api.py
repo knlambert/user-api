@@ -34,23 +34,14 @@ class UserApi(object):
             jwt_lifetime=jwt_lifetime
         )
 
-    def list_users(self, limit=20, offset=0, email=None, name=None):
+    def get_flask_adapter(self):
         """
-        List the users from the API.
-        Args:
-            limit (int): The max number of returned users.
-            offset (int): The cursor.
-            email (unicode): An email to filter on.
-            name (unicode): A name to filter on.
+        Get an adapter for the API.
 
         Returns:
-            (dict): The returned
+            (FlaskAdapter): The adapter.
         """
+        from .adapter.flask_adapter import FlaskAdapter
+        return FlaskAdapter(self.db_manager, self.authentication)
 
-        return self.db_manager.list_users(
-            limit=limit,
-            offset=offset,
-            email=email,
-            name=name
-        )
 
