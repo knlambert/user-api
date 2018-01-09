@@ -16,7 +16,7 @@ The projects uses :
 To install the lib :
 
 ```bash
-pip2 install https://github.com/duckswitch/py-duck-user-api.git
+pip2 install https://github.com/knlambert/py-duck-user-api.git
 ```
 
 ## The database
