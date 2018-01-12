@@ -2,7 +2,12 @@
 """
 Contains the DB manager.
 """
+
 import logging
+from .models import User
+from sqlalchemy import exc
+from sqlalchemy import create_engine, and_
+from sqlalchemy.orm import sessionmaker, load_only
 
 
 class DBManager:
@@ -12,79 +17,23 @@ class DBManager:
 
     def __init__(
             self,
-            db_driver,
-            db_user,
-            db_passwd,
-            db_name,
-            db_host=None,
-            db_unix_socket=None
+            url
     ):
-        self.__db_driver = db_driver
-        self._db_host = db_host
-        self._db_unix_socket = db_unix_socket
-        self._db_user = db_user
-        self._db_passwd = db_passwd
-        self._db_name = db_name
-        self._db = None
-
-    def _connect(self):
         """
-        Connect to the database.
-        """
-        params = {
-            u"user": self._db_user,
-            u"passwd": self._db_passwd,
-            u"db": self._db_name,
-            u"charset": u"utf8"
-        }
-        if self._db_host:
-            params[u"host"] = self._db_host
-        else:
-            params[u"unix_socket"] = self._db_unix_socket
-        self._db = self.__db_driver.connect(**params)
-
-    def _disconnect(self):
-        """
-        Disconnect from the database.
-        """
-        self._db.close()
-
-    def _do_reconnect_if_needed(self, e):
-        """
-        Reconnect if connection lost.
+        Constructor.
         Args:
-            e: Th exception to test.
-
+            url (unicode): The construction URL to connect to the database.
         """
-        if e[0] == 2006:
-            logging.info(u"Connection lost. Reconnecting ... {}".format(e))
-            self._connect()
-            logging.info(u"Connection recovered")
-        else:
-            logging.warning(u"Incident : {}".format(e))
-            raise e
+        self._engine = create_engine(url)
 
-    def _execute(self, query, values=None):
+    def get_session(self):
         """
-        Execute a SQL Query.
-        Args:
-            query (unicode): The query to execute.
-            values (list): A list of values to insert in the query.
-
+        Returns a DB access session.
         Returns:
-            (tuple): A tuple result / description.
+            (Session): The session object.
         """
-        self._connect()
-        cursor = self._db.cursor()
-        try:
-            cursor.execute(query, values)
-        except self.__db_driver.OperationalError as e:
-            self._do_reconnect_if_needed(e)
-            cursor.execute(query, values)
-
-        self._db.commit()
-        self._disconnect()
-        return cursor.fetchall(), cursor.description
+        session = sessionmaker(self._engine)
+        return session()
 
     def get_user_information(self, email):
         """
@@ -95,13 +44,16 @@ class DBManager:
         Returns:
             (dict): The user information.
         """
-        rows, _ = self._execute(u"SELECT id, email, name FROM user WHERE email = %s", (email,))
-        if len(rows) == 0:
+        session = self.get_session()
+        columns = [u"id", u"email", u"name"]
+        user = session.query(User).filter_by(email=email).options(load_only(*columns)).one()
+
+        if user is None:
             return None
+
         return {
-            u"id": rows[0][0],
-            u"email": rows[0][1],
-            u"name": rows[0][2]
+            col: getattr(user, col)
+            for col in columns
         }
 
     def get_user_salt(self, email):
@@ -113,10 +65,9 @@ class DBManager:
         Returns:
             (unicode): The salt.
         """
-        rows, _ = self._execute(u"SELECT salt FROM user WHERE email = %s", (email,))
-        if len(rows) == 0:
-            return None
-        return rows[0][0]
+        session = self.get_session()
+        user = session.query(User).filter_by(email=email).options(load_only(u"salt")).one()
+        return user.salt
 
     def modify_hash_salt(self, email, hash, salt):
         """
@@ -126,10 +77,12 @@ class DBManager:
             hash (unicode): The hash (password).
             salt (unicode): The salt associated with the hash before saving.
         """
-        self._execute(
-            u"UPDATE user SET hash = %s, salt = %s WHERE email = %s",
-            (hash, salt, email)
-        )
+        session = self.get_session()
+        session.query(User)\
+            .filter_by(email=email)\
+            .update({User.hash: hash, User.salt: salt})
+
+        session.commit()
 
     def save_new_user(self, email, name, hash, salt):
         """
@@ -144,12 +97,18 @@ class DBManager:
             (ValueError): if user breaks a constraint.
         """
         try:
-            self._execute(
-                u"INSERT INTO user(email, name, hash, salt) VALUES (%s, %s, %s, %s);",
-                (email, name, hash, salt)
+            session = self.get_session()
+            user = User(
+                email=email,
+                name=name,
+                hash=hash,
+                salt=salt
             )
-        except self.__db_driver.IntegrityError as e:
-            raise ValueError(str(e))
+            session.add(user)
+            session.commit()
+
+        except exc.IntegrityError as err:
+            raise ValueError(unicode(err))
 
     def is_user_hash_valid(self, email, hash):
         """
@@ -161,10 +120,10 @@ class DBManager:
         Returns:
             (boolean): If the hash is valid or not.
         """
-        rows, _ = self._execute(u"SELECT hash FROM user WHERE email = %s", (email,))
-        if len(rows) == 0:
-            return False
-        return hash == rows[0][0]
+        session = self.get_session()
+        user = session.query(User).filter_by(email=email).options(load_only(u"hash")).one()
+
+        return False if (user is None or hash != user.hash) else True
 
     def list_users(self, limit=20, offset=0, email=None, name=None):
         """
@@ -178,33 +137,36 @@ class DBManager:
         Returns:
             (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
         """
-        where_q, where_v = [], []
-        if email:
-            where_q.append(u"email LIKE %s")
-            where_v.append(u"%{}%".format(email))
+        session = self.get_session()
+        columns = [u"id", u"email", u"name"]
 
-        if name:
-            where_q.append(u"name LIKE %s")
-            where_v.append(u"%{}%".format(name))
+        filters = []
+        if email is not None:
+            filters.append(User.email.like(u"%{}%".format(email)))
 
-        if len(where_q) > 0:
-            where_q = [u"WHERE "] + [u" AND ".join(where_q)]
+        if name is not None:
+            filters.append(User.name.like(u"%{}%".format(name)))
 
-        rows, _ = self._execute(
-            query=u"SELECT id, email, name FROM user {} LIMIT %s OFFSET %s".format(u"".join(where_q)),
-            values=where_v + [limit+1, offset]
-        )
+        users = session.query(User)\
+            .options(load_only(*columns))\
+            .filter(and_(*filters))\
+            .offset(offset)\
+            .limit(limit+1)
 
-        has_next = len(rows) > limit - 1
-        rows = rows if not has_next else rows[:-1]
+        if users.count() > limit:
+            users = users[:-1]
+            has_next = True
+        else:
+            has_next = False
+
         return {
             u"users": [
                 {
-                    u"id": row[0],
-                    u"email": row[1],
-                    u"name": row[2]
+                    u"id": user.id,
+                    u"email": user.email,
+                    u"name": user.name
                 }
-                for row in rows
+                for user in users
             ],
             u"has_next": has_next
         }

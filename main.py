@@ -1,20 +1,16 @@
 # coding: utf-8
 
 from flask import Flask
-from user_api.user_api import UserApi
+from user_api import create_user_api
 
 # create flask server
 app = Flask(__name__)
 app.debug = True
 
 # Create user api object
-user_api = UserApi(
-    db_host=u"127.0.0.1",
-    db_user=u"root",
-    db_passwd=u"localroot1234",
-    db_name=u"user_api",
-    jwt_secret=u"DUMMY",
-    jwt_lifetime=30 * 24 * 3600
+user_api = create_user_api(
+    db_url=u"mysql://root:localroot1234@127.0.0.1/user_api",
+    jwt_secret=u"DUMMY"
 )
 
 # Register the blueprint
