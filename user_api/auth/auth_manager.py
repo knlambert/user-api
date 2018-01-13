@@ -19,7 +19,7 @@ except ValueError:
     pass
 
 
-class AuthManager:
+class AuthManager(object):
     def __init__(self, jwt_secret, jwt_lifetime):
         self._jwt_secret = jwt_secret
         self._jwt_lifetime = jwt_lifetime

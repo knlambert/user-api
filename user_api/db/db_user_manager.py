@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Contains the DB manager.
+Contains the DB User manager.
 """
 
 from .db_exception import (
@@ -9,11 +9,12 @@ from .db_exception import (
 )
 from .models import User
 from sqlalchemy import exc
+from .db_manager import DBManager
 from sqlalchemy import create_engine, and_
-from sqlalchemy.orm import sessionmaker, load_only, exc as orm_exc
+from sqlalchemy.orm import load_only, exc as orm_exc
 
 
-class DBUserManager:
+class DBUserManager(DBManager):
     """
     Handles the interactions with the database.
     """
@@ -27,16 +28,7 @@ class DBUserManager:
         Args:
             url (unicode): The construction URL to connect to the database.
         """
-        self._engine = create_engine(url)
-
-    def get_session(self):
-        """
-        Returns a DB access session.
-        Returns:
-            (Session): The session object.
-        """
-        session = sessionmaker(self._engine)
-        return session()
+        DBManager.__init__(self, url)
 
     @staticmethod
     def to_user_dict(user):
