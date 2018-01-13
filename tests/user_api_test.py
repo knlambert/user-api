@@ -41,6 +41,11 @@ def mock_db_user_manager(mock_dummy_user):
     mock.list_users = Mock(return_value=([mock_dummy_user], False))
     return mock
 
+@fixture(scope=u"function")
+def mock_db_role_manager(mock_dummy_user):
+    mock = Mock()
+    return mock
+
 
 @fixture(scope=u"function")
 def mock_auth_manager(mock_dummy_user):
@@ -55,8 +60,8 @@ def mock_auth_manager(mock_dummy_user):
 
 
 @fixture(scope=u"function")
-def stubbed_user_api(mock_db_user_manager, mock_auth_manager):
-    return UserApi(mock_db_user_manager, mock_auth_manager)
+def stubbed_user_api(mock_db_user_manager, mock_db_role_manager, mock_auth_manager):
+    return UserApi(mock_db_user_manager, mock_db_role_manager, mock_auth_manager)
 
 
 def test_update(stubbed_user_api, mock_dummy_user):

@@ -20,15 +20,18 @@ class UserApi(object):
     def __init__(
         self,
         db_user_manager,
+        db_role_manager,
         auth_manager
     ):
         """
         Build the user API
         Args:
             db_user_manager (DBUserManager): Injected object to handle DB interaction.
+            db_group_manager (DBRoleManager): Injected object to handle DB interaction.
             auth_manager (AuthManager): Injected object to handle Auth interactions.
         """
         self._db_user_manager = db_user_manager
+        self._db_role_manager = db_role_manager
         self._auth_manager = auth_manager
 
     def get_flask_adapter(self):
@@ -86,6 +89,9 @@ class UserApi(object):
             raise ApiUnauthorized(u"Wrong login or / and password.")
 
         payload = self._db_user_manager.get_user_information(email)
+        payload[u"roles"] = self._db_role_manager.get_user_roles(
+            user_id=payload[u"id"]
+        )
         token = self._auth_manager.generate_token(payload)
         return payload, token
 

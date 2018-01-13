@@ -10,7 +10,7 @@ from .db_exception import (
 from .models import User
 from sqlalchemy import exc
 from .db_manager import DBManager
-from sqlalchemy import create_engine, and_
+from sqlalchemy import and_
 from sqlalchemy.orm import load_only, exc as orm_exc
 
 
