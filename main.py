@@ -15,7 +15,7 @@ user_api = create_user_api(
 
 # Register the blueprint
 app.register_blueprint(
-    user_api.get_flask_adapter().construct_blueprint(),
+    user_api.get_flask_adapter().construct_users_blueprint(),
     url_prefix=u"/api/users"
 )
 

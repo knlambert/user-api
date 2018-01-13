@@ -83,7 +83,7 @@ class FlaskAdapter(object):
 
         return decorator
 
-    def construct_blueprint(self):
+    def construct_users_blueprint(self):
         user_api_blueprint = Blueprint(u'user_api', __name__)
 
         @user_api_blueprint.route(u'/login', methods=[u"POST"])

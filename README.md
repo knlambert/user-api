@@ -21,10 +21,10 @@ pip2 install https://github.com/knlambert/py-modest-user-api.git
 
 ## The database
 
-Execute the database/schema.sql file given in the repository.
-
+To generate the database and create the admin user, use the init_api.py script.
 ```sql
-source database/schema.sql
+source venv/bin/activate
+python2 init_api.py mysql://login:password@host/user_api jwt_secret password_admin
 ```
 ## Flask adapter
 
@@ -47,7 +47,7 @@ user_api = create_user_api(
 
 # Register the blueprint
 app.register_blueprint(
-    user_api.get_flask_adapter().construct_blueprint(),
+    user_api.get_flask_adapter().construct_users_blueprint(),
     url_prefix=u"/api/users"
 )
 
