@@ -8,6 +8,7 @@ from .db.db_exception import (
 from user_api_exception import (
     ApiConflict,
     ApiNotFound,
+    ApiForbidden,
     ApiUnauthorized,
     ApiUnprocessableEntity
 )
@@ -89,6 +90,9 @@ class UserApi(object):
             raise ApiUnauthorized(u"Wrong login or / and password.")
 
         payload = self._db_user_manager.get_user_information(email)
+        if not payload[u"active"]:
+            raise ApiUnauthorized(u"User is not active.")
+
         payload[u"roles"] = self._db_role_manager.get_user_roles(
             user_id=payload[u"id"]
         )
@@ -179,3 +183,27 @@ class UserApi(object):
             u"users": users,
             u"has_next": has_next
         }
+
+    def token_has_roles(self, token, roles):
+        """
+        Check if a token is authorized for a role list.
+        Args:
+            token (unicode): The token to check.
+            roles (list of unicode): The list of roles code to check.
+
+        Returns:
+            (boolean): Returns true if it has the roles.
+
+        Raises
+            (ApiForbidden): Raised if the token doesn't have the expected roles.
+        """
+        token = self._auth_manager.get_token_data(token)
+        missing_roles = []
+        user_roles = [role[u"code"] for role in token[u"roles"]]
+        for required_role in roles:
+            if required_role not in user_roles:
+                missing_roles.append(required_role)
+        if len(missing_roles) > 0:
+            raise ApiForbidden(u"You don't have the {} role(s).".format(u", ".join(missing_roles)))
+
+        return True

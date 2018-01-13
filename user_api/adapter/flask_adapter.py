@@ -30,32 +30,52 @@ class FlaskAdapter(object):
         """
         self._user_api = user_api
 
+    def check_token(self, request, login_url=None):
+        if u"Authorization" in request.headers:
+            authorization = request.headers.get(u"Authorization")
+            m = re.search(u"Bearer (\S+)", authorization)
+            token = m.group(1)
+            if m is None or not self._user_api.is_token_valid(token):
+                raise ApiUnauthorized(u"Invalid token.")
+            return token
+        elif u"user-api-credentials" in request.cookies:
+            decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
+            if not self._user_api.is_token_valid(decoded_token):
+                raise ApiUnauthorized(u"Invalid token.")
+            return decoded_token
+        else:
+            if login_url:
+                return redirect(login_url, 302)
+            else:
+                raise ApiUnauthorized()
+
     def is_connected(self, login_url=None):
 
         def decorator(funct):
 
             @wraps(funct)
             def wrapper(*args, **kwargs):
-                # These two endpoint do not hae self.user_api.authentication.
-                if request.endpoint not in [u'user_api.authentify']:
-                    if u"Authorization" in request.headers:
-                        authorization = request.headers.get(u"Authorization")
-                        m = re.search(u"Bearer (\S+)", authorization)
-                        token = m.group(1)
-                        if m is None or not self._user_api.is_token_valid(token):
-                            raise ApiUnauthorized(u"Invalid token.")
+                self.check_token(request, login_url)
+                # If all right, do call function
+                ret = funct(*args, **kwargs)
+                return ret
 
-                    elif u"user-api-credentials" in request.cookies:
-                        decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
-                        if not self._user_api.is_token_valid(decoded_token):
-                            raise ApiUnauthorized(u"Invalid token.")
-                    else:
-                        if login_url:
-                            return redirect(login_url, 302)
-                        else:
-                            raise ApiUnauthorized()
+            return wrapper
 
-                    # If all right, do call function
+        return decorator
+
+    def has_roles(self, roles):
+
+        def decorator(funct):
+
+            @wraps(funct)
+            def wrapper(*args, **kwargs):
+
+                self._user_api.token_has_roles(
+                    token=self.check_token(request),
+                    roles=roles
+                )
+
                 ret = funct(*args, **kwargs)
                 return ret
 
@@ -104,11 +124,18 @@ class FlaskAdapter(object):
             }
         })
         def reset_password(payload):
+            token = self.check_token(request)
+            token_payload = self._user_api.get_token_data(token)
+
+            # If connected user different from the one to reset, check admin rights.
+            if token_payload[u"email"] != payload.get(u"email"):
+                self._user_api.token_has_roles(token, [u"admin"])
+
             result = self._user_api.reset_password(**payload)
             return flask_construct_response(result, 200)
 
         @user_api_blueprint.route(u'/', methods=[u"POST"])
-        @self.is_connected()
+        @self.has_roles(roles=[u"admin"])
         @flask_check_and_inject_payload({
             u"email": {
                 u"type": u"string",
@@ -149,7 +176,7 @@ class FlaskAdapter(object):
                 return response, code
 
         @user_api_blueprint.route(u'/', methods=[u"GET"])
-        @self.is_connected()
+        @self.has_roles(roles=[u"admin"])
         @flask_check_args({
             u"limit": {
                 u"type": u"integer",
@@ -172,7 +199,7 @@ class FlaskAdapter(object):
             return jsonify(self._user_api.list_users(**args)), 200
 
         @user_api_blueprint.route(u'/<int:user_id>', methods=[u"PUT"])
-        @self.is_connected()
+        @self.has_roles(roles=[u"admin"])
         @flask_check_and_inject_payload({
             u"email": {
                 u"type": u"string",
