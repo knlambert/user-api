@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from user_api.db_manager import DBManager
-from user_api.authentication import Authentication
+from user_api.db.db_manager import DBManager
+from user_api.auth.auth_manager import AuthManager
 import MySQLdb
 
 # Init DB Manager
@@ -13,7 +13,7 @@ db_manager = DBManager(
     db_name="user_api"
 )
 # Init Auth Manager
-auth = Authentication(
+auth = AuthManager(
     jwt_secret=u"DUMMY",
     jwt_lifetime=30 * 24 * 3600
 )

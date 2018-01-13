@@ -2,7 +2,7 @@
 
 from mock import Mock
 from pytest import fixture
-from user_api.db_manager import DBManager
+from user_api.db.db_manager import DBManager
 
 
 @fixture(scope=u"function")

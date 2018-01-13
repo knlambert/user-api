@@ -10,6 +10,7 @@ from flask_utils import (
 )
 from user_api.user_api_exception import (
     ApiConflict,
+    ApiNotFound,
     ApiException,
     ApiForbidden,
     ApiUnauthorized,
@@ -17,20 +18,17 @@ from user_api.user_api_exception import (
 )
 import base64
 import re
-import json
 
 
 class FlaskAdapter(object):
 
-    def __init__(self, db_manager, authentication):
+    def __init__(self, user_api):
         """
         Construct the object.
         Args:
-            db_manager (DBManager): Injected DB manager.
-            authentication (Authentication): Injected Authentication object.
+            user_api (UserApi): Injected User API
         """
-        self._db_manager = db_manager
-        self._authentication = authentication
+        self._user_api = user_api
 
     def is_connected(self, login_url=None):
 
@@ -40,23 +38,22 @@ class FlaskAdapter(object):
             def wrapper(*args, **kwargs):
                 # These two endpoint do not hae self.user_api.authentication.
                 if request.endpoint not in [u'user_api.authentify']:
-
                     if u"Authorization" in request.headers:
                         authorization = request.headers.get(u"Authorization")
                         m = re.search(u"Bearer (\S+)", authorization)
                         token = m.group(1)
-                        if m is None or not self._authentication.is_token_valid(token):
+                        if m is None or not self._user_api.is_token_valid(token):
                             raise ApiUnauthorized(u"Invalid token.")
 
                     elif u"user-api-credentials" in request.cookies:
                         decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
-                        if not self._authentication.is_token_valid(decoded_token):
+                        if not self._user_api.is_token_valid(decoded_token):
                             raise ApiUnauthorized(u"Invalid token.")
                     else:
                         if login_url:
                             return redirect(login_url, 302)
                         else:
-                            raise ApiForbidden()
+                            raise ApiUnauthorized()
 
                     # If all right, do call function
                 ret = funct(*args, **kwargs)
@@ -81,30 +78,15 @@ class FlaskAdapter(object):
             }
         })
         def login(payload):
-            email = payload.get(u"email")
-            password = payload.get(u"password")
-            salt = self._db_manager.get_user_salt(email=email)
-            hash = self._authentication.generate_hash(
-                password,
-                salt
-            )
-            valid = self._db_manager.is_user_hash_valid(
-                email,
-                hash=hash
-            )
 
-            if valid:
-                payload = self._db_manager.get_user_information(email=email)
-                token = self._authentication.generate_token(payload)
-            else:
-                raise ApiUnauthorized(u"Wrong login or / and password.")
+            token_payload, token = self._user_api.authenticate(**payload)
 
-            response = jsonify(payload)
+            response = jsonify(token_payload)
             response.set_cookie(
                 u"user-api-credentials",
                 value=base64.b64encode(token.encode(u"utf8")),
                 httponly=True,
-                expires=payload[u"exp"]
+                expires=token_payload[u"exp"]
             )
 
             return response, 200
@@ -122,19 +104,10 @@ class FlaskAdapter(object):
             }
         })
         def reset_password(payload):
-            salt = self._authentication.generate_salt()
-            email = payload.get(u"email")
-            password = payload.get(u"password")
-            hash = self._authentication.generate_hash(password, salt)
+            result = self._user_api.reset_password(**payload)
+            return flask_construct_response(result, 200)
 
-            self._db_manager.modify_hash_salt(email, hash, salt)
-            payload = self._db_manager.get_user_information(email=email)
-            if payload is None:
-                raise ApiUnprocessableEntity(u"User '{}' doesn't exist.".format(email))
-
-            return flask_construct_response(payload, 200)
-
-        @user_api_blueprint.route(u'/register', methods=[u"POST"])
+        @user_api_blueprint.route(u'/', methods=[u"POST"])
         @self.is_connected()
         @flask_check_and_inject_payload({
             u"email": {
@@ -151,28 +124,14 @@ class FlaskAdapter(object):
             }
         })
         def register(payload):
-            try:
-                salt = self._authentication.generate_salt()
-                hash = self._authentication.generate_hash(payload.get(u"password"), salt)
-                self._db_manager.save_new_user(
-                    email=payload.get(u"email"),
-                    name=payload.get(u"name"),
-                    hash=hash,
-                    salt=salt
-                )
-            except ValueError:
-                raise ApiConflict(u"User already exists.")
-
-            return flask_construct_response({
-                u"message": u"New user registered successfully."
-            }, 201)
+            return flask_construct_response(self._user_api.register(**payload), 201)
 
         @user_api_blueprint.route(u'/me', methods=[u"GET"])
         @self.is_connected()
         def me():
             if u"user-api-credentials" in request.cookies:
                 decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
-                return flask_construct_response(self._authentication.get_token_data(decoded_token), 200)
+                return flask_construct_response(self._user_api.get_token_data(decoded_token), 200)
 
         @user_api_blueprint.route(u'/logout', methods=[u"GET"])
         @self.is_connected()
@@ -210,7 +169,27 @@ class FlaskAdapter(object):
             }
         })
         def list_users(args):
-            return jsonify(self._db_manager.list_users(**args)), 200
+            return jsonify(self._user_api.list_users(**args)), 200
+
+        @user_api_blueprint.route(u'/<int:user_id>', methods=[u"PUT"])
+        @self.is_connected()
+        @flask_check_and_inject_payload({
+            u"email": {
+                u"type": u"string",
+                u"required": True
+            },
+            u"name": {
+                u"type": u"string",
+                u"required": True
+            },
+            u"active": {
+                u"type": u"boolean",
+                u"required": True
+            }
+        })
+        def update(payload, user_id):
+            result = self._user_api.update(payload, user_id)
+            return flask_construct_response(result, 200)
 
         @user_api_blueprint.errorhandler(ApiException)
         def api_error_handler(exception):

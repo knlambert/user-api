@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -15,3 +15,5 @@ class User(Base):
     name = Column(String(255))
     hash = Column(String(255))
     salt = Column(String(255))
+    active = Column(Boolean, default=True)
+

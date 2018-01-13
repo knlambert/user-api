@@ -4,8 +4,8 @@ Contains helpers to help construct objects.
 """
 
 from .user_api import UserApi
-from .db_manager import DBManager
-from .authentication import Authentication
+from .db.db_manager import DBManager
+from .auth.auth_manager import AuthManager
 
 
 def create_user_api(db_url, jwt_secret, jwt_lifetime=3600 * 12 * 30):
@@ -21,7 +21,7 @@ def create_user_api(db_url, jwt_secret, jwt_lifetime=3600 * 12 * 30):
     """
     return UserApi(
         db_manager=DBManager(db_url),
-        authentication=Authentication(
+        authentication=AuthManager(
             jwt_lifetime=jwt_lifetime,
             jwt_secret=u"DUMMY"
         )

@@ -3,11 +3,13 @@
 Contains the DB manager.
 """
 
-import logging
+from .db_exception import (
+    DBUserNotFound
+)
 from .models import User
 from sqlalchemy import exc
 from sqlalchemy import create_engine, and_
-from sqlalchemy.orm import sessionmaker, load_only
+from sqlalchemy.orm import sessionmaker, load_only, exc as orm_exc
 
 
 class DBManager:
@@ -35,20 +37,28 @@ class DBManager:
         session = sessionmaker(self._engine)
         return session()
 
-    def get_user_information(self, email):
+    def get_user_information(self, user_id):
         """
         Get the information of the user from his email.
         Args:
-            email (unicode): The email of the user we want the information.
+            user_id (unicode): The email of the user we want the information.
 
         Returns:
             (dict): The user information.
         """
-        session = self.get_session()
-        columns = [u"id", u"email", u"name"]
-        user = session.query(User).filter_by(email=email).options(load_only(*columns)).one()
+        filters = {}
+        try:
+            filters[u"id"] = int(user_id)
+        except ValueError:
+            filters[u"email"] = user_id
 
-        if user is None:
+        session = self.get_session()
+        columns = [u"id", u"email", u"name", u"active"]
+
+        try:
+            user = session.query(User).filter_by(**filters).options(load_only(*columns)).one()
+
+        except orm_exc.NoResultFound:
             return None
 
         return {
@@ -66,7 +76,12 @@ class DBManager:
             (unicode): The salt.
         """
         session = self.get_session()
-        user = session.query(User).filter_by(email=email).options(load_only(u"salt")).one()
+        try:
+            user = session.query(User).filter_by(email=email).options(load_only(u"salt")).one()
+
+        except orm_exc.NoResultFound:
+            raise DBUserNotFound
+
         return user.salt
 
     def modify_hash_salt(self, email, hash, salt):
@@ -106,6 +121,12 @@ class DBManager:
             )
             session.add(user)
             session.commit()
+            return {
+                u"id": user.id,
+                u"email": user.email,
+                u"name": user.name,
+                u"active": user.active
+            }
 
         except exc.IntegrityError as err:
             raise ValueError(unicode(err))
@@ -138,7 +159,7 @@ class DBManager:
             (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
         """
         session = self.get_session()
-        columns = [u"id", u"email", u"name"]
+        columns = [u"id", u"email", u"name", u"active"]
 
         filters = []
         if email is not None:
@@ -159,15 +180,13 @@ class DBManager:
         else:
             has_next = False
 
-        return {
-            u"users": [
-                {
-                    u"id": user.id,
-                    u"email": user.email,
-                    u"name": user.name
-                }
-                for user in users
-            ],
-            u"has_next": has_next
-        }
+        return [
+            {
+                u"id": user.id,
+                u"email": user.email,
+                u"name": user.name,
+                u"active": user.active
+            }
+            for user in users
+        ], has_next
 
