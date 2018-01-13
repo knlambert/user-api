@@ -4,6 +4,7 @@ Contains the DB manager.
 """
 
 from .db_exception import (
+    DBUserConflict,
     DBUserNotFound
 )
 from .models import User
@@ -37,6 +38,21 @@ class DBManager:
         session = sessionmaker(self._engine)
         return session()
 
+    @staticmethod
+    def to_user_dict(user):
+        """
+        Take a user Object to transform it into dict.
+        Args:
+            user (User): The user to process.
+        Returns:
+            (dict): The user.
+
+        """
+        return {
+            col: getattr(user, col)
+            for col in [u"id", u"email", u"name", u"active"]
+        }
+
     def get_user_information(self, user_id):
         """
         Get the information of the user from his email.
@@ -60,10 +76,34 @@ class DBManager:
         except orm_exc.NoResultFound:
             return DBUserNotFound
 
-        return {
-            col: getattr(user, col)
-            for col in columns
-        }
+        return self.to_user_dict(user)
+
+    def update_user_information(self, email, name, active, user_id):
+        """
+        Update information for a user.
+        Args:
+            email (unicode): The updated email for the user.
+            name (unicode): The updated name for the user.
+            active (boolean): The updated status for the use.
+            user_id (int): The ID of the user to update.
+
+        Returns:
+            (dict): The updated user.
+        """
+        session = self.get_session()
+        try:
+            session.query(User)\
+                .filter_by(id=user_id)\
+                .update({
+                    u"email": email,
+                    u"name": name,
+                    u"active": active
+                })
+        except exc.IntegrityError:
+            raise DBUserConflict
+
+        session.commit()
+        return self.get_user_information(user_id)
 
     def get_user_salt(self, email):
         """
@@ -128,7 +168,7 @@ class DBManager:
             }
 
         except exc.IntegrityError as err:
-            raise ValueError(unicode(err))
+            raise DBUserConflict
 
     def is_user_hash_valid(self, email, hash):
         """

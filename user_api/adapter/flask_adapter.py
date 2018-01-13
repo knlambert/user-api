@@ -178,6 +178,10 @@ class FlaskAdapter(object):
                 u"type": u"string",
                 u"required": True
             },
+            u"id": {
+                u"type": u"integer",
+                u"required": False
+            },
             u"name": {
                 u"type": u"string",
                 u"required": True
@@ -188,6 +192,9 @@ class FlaskAdapter(object):
             }
         })
         def update(payload, user_id):
+            if u"id" in payload:
+                del payload[u"id"]
+
             result = self._user_api.update(payload, user_id)
             return flask_construct_response(result, 200)
 

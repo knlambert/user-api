@@ -51,11 +51,13 @@ class UserApi(object):
             (dict): The updated user.
         """
         try:
-            user = self._db_manager.get_user_information(user_id)
+            payload[u"user_id"] = user_id
+            user = self._db_manager.update_user_information(**payload)
+            return user
+        except DBUserConflict:
+            raise ApiConflict
         except DBUserNotFound:
             raise ApiNotFound(u"User not found.")
-
-        return user
 
     def authenticate(self, email, password):
         """

@@ -128,9 +128,8 @@ Use this web service to create a user.
 
 You must be connected to use this service.
 
-Payload 
 ```bash
-POST http://localhost:5000/api/user/register
+POST http://localhost:5000/api/users/register
 {
     "email": "dummy@dummy.net",
     "password": "JustMyPassword",
@@ -140,7 +139,6 @@ POST http://localhost:5000/api/user/register
 ```bash
 {
     "email": "dummy@dummy.net",
-    "password": "JustMyPassword",
     "name": "Dummy Doe"
     "id": 42,
     "active": true 
@@ -166,5 +164,51 @@ GET http://localhost:5000/api/users/me
   "exp": 1497989335, 
   "id": 2, 
   "name": "Dummy Doe"
+}
+```
+
+## List users [Authenticated]
+
+This service allows to list user in the database.
+You can filter with a LIKE operator on both fields email and name.
+
+You must be connected to use this service.
+
+```bash
+GET http://localhost:5000/api/users/?email=myapp.net&name=admin
+```
+```bash
+{
+  "has_next": false,
+  "users": [
+    {
+        "active": true,
+        "email": "admin@myapp.net",
+        "id": 1,
+        "name": "Admin"
+    }
+  ]
+}
+```
+
+## Update a user [Authenticated]
+
+Allows to update a user information.
+
+Payload 
+```bash
+PUT http://localhost:5000/api/users/42
+{
+    "email": "dummy@dummy.net",
+    "name": "Dummy Doe",
+    "active": false
+}
+```
+```bash
+{
+    "email": "dummy@dummy.net",
+    "name": "Dummy Doe"
+    "id": 42,
+    "active": true 
 }
 ```
