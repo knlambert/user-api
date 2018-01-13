@@ -20,3 +20,12 @@ class DBUserNotFound(DBException):
     def __init__(self):
         DBException.__init__(self, u"Can't find user in the database.")
 
+
+class DBUserConflict(DBException):
+    """
+    Raised if a user conflict happens.
+    """
+    def __init__(self):
+        DBException.__init__(self, u"User conflict.")
+
+

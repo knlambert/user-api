@@ -57,9 +57,8 @@ class DBManager:
 
         try:
             user = session.query(User).filter_by(**filters).options(load_only(*columns)).one()
-
         except orm_exc.NoResultFound:
-            return None
+            return DBUserNotFound
 
         return {
             col: getattr(user, col)

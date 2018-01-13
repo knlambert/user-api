@@ -21,7 +21,7 @@ def create_user_api(db_url, jwt_secret, jwt_lifetime=3600 * 12 * 30):
     """
     return UserApi(
         db_manager=DBManager(db_url),
-        authentication=AuthManager(
+        auth_manager=AuthManager(
             jwt_lifetime=jwt_lifetime,
             jwt_secret=u"DUMMY"
         )

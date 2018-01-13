@@ -2,6 +2,7 @@
 
 from .db.db_manager import DBManager
 from .db.db_exception import (
+    DBUserConflict,
     DBUserNotFound
 )
 from user_api_exception import (
@@ -19,16 +20,16 @@ class UserApi(object):
     def __init__(
         self,
         db_manager,
-        authentication
+        auth_manager
     ):
         """
         Build the user API
         Args:
             db_manager (DBManager): Injected object to handle DB interaction.
-            authentication (AuthManager): Injected object to handle Auth interactions.
+            auth_manager (AuthManager): Injected object to handle Auth interactions.
         """
         self._db_manager = db_manager
-        self._authentication = authentication
+        self._auth_manager = auth_manager
 
     def get_flask_adapter(self):
         """
@@ -49,8 +50,9 @@ class UserApi(object):
         Returns:
             (dict): The updated user.
         """
-        user = self._db_manager.get_user_information(user_id)
-        if user is None:
+        try:
+            user = self._db_manager.get_user_information(user_id)
+        except DBUserNotFound:
             raise ApiNotFound(u"User not found.")
 
         return user
@@ -70,7 +72,7 @@ class UserApi(object):
         except DBUserNotFound:
             raise ApiNotFound(u"Can't find user {}.".format(email))
 
-        hash = self._authentication.generate_hash(
+        hash = self._auth_manager.generate_hash(
             password,
             salt
         )
@@ -82,7 +84,7 @@ class UserApi(object):
             raise ApiUnauthorized(u"Wrong login or / and password.")
 
         payload = self._db_manager.get_user_information(email)
-        token = self._authentication.generate_token(payload)
+        token = self._auth_manager.generate_token(payload)
         return payload, token
 
     def reset_password(self, email, password):
@@ -95,13 +97,13 @@ class UserApi(object):
         Returns:
             (dict): The user auth new information.
         """
-        salt = self._authentication.generate_salt()
-        hash = self._authentication.generate_hash(password, salt)
+        salt = self._auth_manager.generate_salt()
+        hash = self._auth_manager.generate_hash(password, salt)
 
         self._db_manager.modify_hash_salt(email, hash, salt)
-        payload = self._db_manager.get_user_information(email)
-
-        if payload is None:
+        try:
+            payload = self._db_manager.get_user_information(email)
+        except DBUserNotFound:
             raise ApiUnprocessableEntity(u"User '{}' doesn't exist.".format(email))
 
         return payload
@@ -117,8 +119,8 @@ class UserApi(object):
         Returns:
             (dict): The user auth new information.
         """
-        salt = self._authentication.generate_salt()
-        hash = self._authentication.generate_hash(password, salt)
+        salt = self._auth_manager.generate_salt()
+        hash = self._auth_manager.generate_hash(password, salt)
         try:
             user = self._db_manager.save_new_user(
                 email=email,
@@ -127,7 +129,7 @@ class UserApi(object):
                 salt=salt
             )
             return user
-        except ValueError:
+        except DBUserConflict:
             raise ApiConflict(u"User already exists.")
 
     def get_token_data(self, token):
@@ -139,7 +141,7 @@ class UserApi(object):
         Returns:
             (dict): The payload contained in the token.
         """
-        return self._authentication.get_token_data(token)
+        return self._auth_manager.get_token_data(token)
 
     def is_token_valid(self, token):
         """
@@ -150,7 +152,7 @@ class UserApi(object):
         Returns:
             (boolean): Return True if valid, else False.
         """
-        return self._authentication.is_token_valid(token)
+        return self._auth_manager.is_token_valid(token)
 
     def list_users(self, limit=20, offset=0, email=None, name=None):
         """
