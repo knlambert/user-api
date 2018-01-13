@@ -96,7 +96,18 @@ POST http://localhost:5000/api/users/login
 ```
 ```bash
 {
-  "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
+  "active": true,
+  "email": "dummy@dummy.net",
+  "exp": 1517194340,
+  "id": 1,
+  "name": "Dummer",
+  "roles": [
+    {
+      "code": "admin",
+      "id": 1,
+      "name": "Admin"
+    }
+  ]
 }
 ```
 
@@ -112,13 +123,16 @@ Payload :
 ```bash
 POST http://localhost:5000/api/users/reset-password
 {
-    "email": "dummy@dummy.net",
-    "password": "JustMyPassword"
+    "email": "admin@myapp.net",
+    "password": "DummyPassword"
 }
 ```
 ```bash
 {
-  "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
+    "active": true,
+    "email": "admin@myapp.net",
+    "id": 1,
+    "name": "Admin"
 }
 ```
 
