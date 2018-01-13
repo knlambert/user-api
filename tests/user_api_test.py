@@ -31,7 +31,7 @@ def mock_dummy_user():
 
 
 @fixture(scope=u"function")
-def mock_db_manager(mock_dummy_user):
+def mock_db_user_manager(mock_dummy_user):
     mock = Mock()
     mock.get_user_salt = Mock(return_value=u"SALT")
     mock.is_user_hash_valid = Mock(return_value=True)
@@ -55,12 +55,12 @@ def mock_auth_manager(mock_dummy_user):
 
 
 @fixture(scope=u"function")
-def stubbed_user_api(mock_db_manager, mock_auth_manager):
-    return UserApi(mock_db_manager, mock_auth_manager)
+def stubbed_user_api(mock_db_user_manager, mock_auth_manager):
+    return UserApi(mock_db_user_manager, mock_auth_manager)
 
 
 def test_update(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.update_user_information = Mock(side_effect=DBUserNotFound)
+    stubbed_user_api._db_user_manager.update_user_information = Mock(side_effect=DBUserNotFound)
     mock_dummy_user[u"name"] = u"New name"
 
     with pytest.raises(ApiNotFound):
@@ -77,7 +77,7 @@ def test_authenticate_user(stubbed_user_api, mock_dummy_user):
 
 
 def test_authenticate_user_not_found(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.get_user_salt = Mock(side_effect=DBUserNotFound)
+    stubbed_user_api._db_user_manager.get_user_salt = Mock(side_effect=DBUserNotFound)
     with pytest.raises(ApiNotFound):
         stubbed_user_api.authenticate(
             mock_dummy_user[u"email"],
@@ -86,7 +86,7 @@ def test_authenticate_user_not_found(stubbed_user_api, mock_dummy_user):
 
 
 def test_authenticate_invalid_token(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.is_user_hash_valid = Mock(return_value=False)
+    stubbed_user_api._db_user_manager.is_user_hash_valid = Mock(return_value=False)
     with pytest.raises(ApiUnauthorized):
         stubbed_user_api.authenticate(
             mock_dummy_user[u"email"],
@@ -99,14 +99,14 @@ def test_reset_password(stubbed_user_api, mock_dummy_user):
         mock_dummy_user[u"email"],
         u"1234"
     )
-    stubbed_user_api._db_manager.modify_hash_salt.assert_called_once_with(
+    stubbed_user_api._db_user_manager.modify_hash_salt.assert_called_once_with(
         mock_dummy_user[u"email"], u"HASH", u"SALT"
     )
     assert payload == mock_dummy_user
 
 
 def test_reset_password_user_not_found(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.get_user_information = Mock(side_effect=DBUserNotFound)
+    stubbed_user_api._db_user_manager.get_user_information = Mock(side_effect=DBUserNotFound)
     with pytest.raises(ApiUnprocessableEntity):
         payload = stubbed_user_api.reset_password(
             mock_dummy_user[u"email"],
@@ -125,7 +125,7 @@ def test_register(stubbed_user_api, mock_dummy_user):
 
 
 def test_register_conflict(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.save_new_user = Mock(side_effect=DBUserConflict)
+    stubbed_user_api._db_user_manager.save_new_user = Mock(side_effect=DBUserConflict)
     with pytest.raises(ApiConflict):
         stubbed_user_api.register(
             mock_dummy_user[u"email"],
@@ -154,7 +154,7 @@ def test_list_users(stubbed_user_api, mock_dummy_user):
         ],
         u"has_next": False
     }
-    stubbed_user_api._db_manager.list_users.assert_called_once_with(
+    stubbed_user_api._db_user_manager.list_users.assert_called_once_with(
         10, 5, u"dumb@laposte.net", u"Dummer"
     )
 

@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker, load_only, exc as orm_exc
 
 
-class DBManager:
+class DBUserManager:
     """
     Handles the interactions with the database.
     """

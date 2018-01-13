@@ -1,11 +1,11 @@
 # coding: utf-8
 
-from user_api.db.db_manager import DBManager
+from user_api.db.db_user_manager import DBUserManager
 from user_api.auth.auth_manager import AuthManager
 import MySQLdb
 
 # Init DB Manager
-db_manager = DBManager(
+db_manager = DBUserManager(
     MySQLdb,
     db_host=u"127.0.0.1",
     db_user="root",

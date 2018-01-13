@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from .db.db_manager import DBManager
+from .db.db_user_manager import DBUserManager
 from .db.db_exception import (
     DBUserConflict,
     DBUserNotFound
@@ -19,16 +19,16 @@ class UserApi(object):
 
     def __init__(
         self,
-        db_manager,
+        db_user_manager,
         auth_manager
     ):
         """
         Build the user API
         Args:
-            db_manager (DBManager): Injected object to handle DB interaction.
+            db_user_manager (DBUserManager): Injected object to handle DB interaction.
             auth_manager (AuthManager): Injected object to handle Auth interactions.
         """
-        self._db_manager = db_manager
+        self._db_user_manager = db_user_manager
         self._auth_manager = auth_manager
 
     def get_flask_adapter(self):
@@ -52,7 +52,7 @@ class UserApi(object):
         """
         try:
             payload[u"user_id"] = user_id
-            user = self._db_manager.update_user_information(**payload)
+            user = self._db_user_manager.update_user_information(**payload)
             return user
         except DBUserConflict:
             raise ApiConflict
@@ -70,7 +70,7 @@ class UserApi(object):
             (dict): The user auth information.
         """
         try:
-            salt = self._db_manager.get_user_salt(email=email)
+            salt = self._db_user_manager.get_user_salt(email=email)
         except DBUserNotFound:
             raise ApiNotFound(u"Can't find user {}.".format(email))
 
@@ -78,14 +78,14 @@ class UserApi(object):
             password,
             salt
         )
-        valid = self._db_manager.is_user_hash_valid(
+        valid = self._db_user_manager.is_user_hash_valid(
             email,
             hash=hash
         )
         if not valid:
             raise ApiUnauthorized(u"Wrong login or / and password.")
 
-        payload = self._db_manager.get_user_information(email)
+        payload = self._db_user_manager.get_user_information(email)
         token = self._auth_manager.generate_token(payload)
         return payload, token
 
@@ -102,9 +102,9 @@ class UserApi(object):
         salt = self._auth_manager.generate_salt()
         hash = self._auth_manager.generate_hash(password, salt)
 
-        self._db_manager.modify_hash_salt(email, hash, salt)
+        self._db_user_manager.modify_hash_salt(email, hash, salt)
         try:
-            payload = self._db_manager.get_user_information(email)
+            payload = self._db_user_manager.get_user_information(email)
         except DBUserNotFound:
             raise ApiUnprocessableEntity(u"User '{}' doesn't exist.".format(email))
 
@@ -124,7 +124,7 @@ class UserApi(object):
         salt = self._auth_manager.generate_salt()
         hash = self._auth_manager.generate_hash(password, salt)
         try:
-            user = self._db_manager.save_new_user(
+            user = self._db_user_manager.save_new_user(
                 email=email,
                 name=name,
                 hash=hash,
@@ -168,7 +168,7 @@ class UserApi(object):
         Returns:
             (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
         """
-        users, has_next = self._db_manager.list_users(limit, offset, email, name)
+        users, has_next = self._db_user_manager.list_users(limit, offset, email, name)
         return {
             u"users": users,
             u"has_next": has_next
