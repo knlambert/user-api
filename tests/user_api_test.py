@@ -60,7 +60,7 @@ def stubbed_user_api(mock_db_manager, mock_auth_manager):
 
 
 def test_update(stubbed_user_api, mock_dummy_user):
-    stubbed_user_api._db_manager.get_user_information = Mock(side_effect=DBUserNotFound)
+    stubbed_user_api._db_manager.update_user_information = Mock(side_effect=DBUserNotFound)
     mock_dummy_user[u"name"] = u"New name"
 
     with pytest.raises(ApiNotFound):

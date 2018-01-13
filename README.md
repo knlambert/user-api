@@ -195,7 +195,6 @@ GET http://localhost:5000/api/users/?email=myapp.net&name=admin
 
 Allows to update a user information.
 
-Payload 
 ```bash
 PUT http://localhost:5000/api/users/42
 {
