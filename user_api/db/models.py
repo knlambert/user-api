@@ -14,9 +14,9 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 user_has_role = Table(u'user_has_role', Base.metadata,
-                      Column(u'user_id', Integer, ForeignKey(u'user.id')),
-                      Column(u'role_id', Integer, ForeignKey(u'role.id'))
-                      )
+    Column(u'user_id', Integer, ForeignKey(u'user.id')),
+    Column(u'role_id', Integer, ForeignKey(u'role.id'))
+)
 
 
 class User(Base):

@@ -7,11 +7,11 @@ from .db_exception import (
     DBUserConflict,
     DBUserNotFound
 )
-from .models import User
+from .models import User, Role
 from sqlalchemy import exc
 from .db_manager import DBManager
 from sqlalchemy import and_
-from sqlalchemy.orm import load_only, exc as orm_exc
+from sqlalchemy.orm import load_only, exc as orm_exc, joinedload, noload
 
 
 class DBUserManager(DBManager):
@@ -30,26 +30,30 @@ class DBUserManager(DBManager):
         """
         DBManager.__init__(self, url)
 
-    @staticmethod
-    def to_user_dict(user):
+    def to_user_dict(self, user, with_roles=False):
         """
         Take a user Object to transform it into dict.
         Args:
             user (User): The user to process.
+            with_roles(boolean): Display roles or not.
         Returns:
             (dict): The user.
 
         """
-        return {
+        j_user = {
             col: getattr(user, col)
             for col in [u"id", u"email", u"name", u"active"]
         }
+        if with_roles:
+            j_user[u"roles"] = [self.to_role_dict(role) for role in user.roles]
+        return j_user
 
-    def get_user_information(self, user_id):
+    def get_user_information(self, user_id, with_roles=False):
         """
         Get the information of the user from his email.
         Args:
             user_id (unicode): The email of the user we want the information.
+            with_roles (boolean): Fetch the roles with the user.
 
         Returns:
             (dict): The user information.
@@ -64,13 +68,18 @@ class DBUserManager(DBManager):
         columns = [u"id", u"email", u"name", u"active"]
 
         try:
-            user = session.query(User).filter_by(**filters).options(load_only(*columns)).one()
+            options = [load_only(*columns)]
+            if with_roles:
+                options.append(joinedload(User.roles))
+
+            user = session.query(User).filter_by(**filters).options(*options).one()
+            return self.to_user_dict(user, with_roles)
+
         except orm_exc.NoResultFound:
             return DBUserNotFound
 
-        return self.to_user_dict(user)
 
-    def update_user_information(self, email, name, active, user_id):
+    def update_user_information(self, email, name, active, roles, user_id):
         """
         Update information for a user.
         Args:
@@ -78,12 +87,35 @@ class DBUserManager(DBManager):
             name (unicode): The updated name for the user.
             active (boolean): The updated status for the use.
             user_id (int): The ID of the user to update.
+            roles (list of dict): A list of groups to apply to the user.
 
         Returns:
             (dict): The updated user.
         """
+
         session = self.get_session()
         try:
+
+            user = session.query(User).filter_by(id=user_id).options(joinedload(User.roles)).one()
+            to_save_role_ids = [role.get(u"id") for role in roles]
+            saved_role_ids = [role.id for role in user.roles]
+
+            # Remove
+            for role in reversed(list(user.roles)):
+                if role.id not in to_save_role_ids:
+                    user.roles.remove(role)
+
+            # Add
+            role_ids_to_add = [
+                role_id
+                for role_id in to_save_role_ids
+                if role_id not in saved_role_ids
+            ]
+
+            roles_to_add = session.query(Role).filter(Role.id.in_(role_ids_to_add)).all()
+            for role in roles_to_add:
+                user.roles.append(role)
+
             session.query(User)\
                 .filter_by(id=user_id)\
                 .update({
@@ -91,11 +123,12 @@ class DBUserManager(DBManager):
                     u"name": name,
                     u"active": active
                 })
+            session.commit()
         except exc.IntegrityError:
             raise DBUserConflict
 
         session.commit()
-        return self.get_user_information(user_id)
+        return self.get_user_information(user_id, with_roles=True)
 
     def get_user_salt(self, email):
         """
@@ -200,7 +233,7 @@ class DBUserManager(DBManager):
             filters.append(User.name.like(u"%{}%".format(name)))
 
         users = session.query(User)\
-            .options(load_only(*columns))\
+            .options(load_only(*columns), noload(u"roles"))\
             .filter(and_(*filters))\
             .offset(offset)\
             .limit(limit+1)
@@ -212,12 +245,7 @@ class DBUserManager(DBManager):
             has_next = False
 
         return [
-            {
-                u"id": user.id,
-                u"email": user.email,
-                u"name": user.name,
-                u"active": user.active
-            }
+            self.to_user_dict(user, with_roles=False)
             for user in users
         ], has_next
 

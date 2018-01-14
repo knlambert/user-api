@@ -13,7 +13,7 @@ from user_api_exception import (
     ApiUnprocessableEntity
 )
 from .auth.auth_manager import AuthManager
-from .adapter.flask_adapter import FlaskAdapter
+from .adapter.flask import FlaskUserApi
 
 
 class UserApi(object):
@@ -35,14 +35,27 @@ class UserApi(object):
         self._db_role_manager = db_role_manager
         self._auth_manager = auth_manager
 
-    def get_flask_adapter(self):
+    def get_flask_user_api(self):
         """
         Get an adapter for the API.
 
         Returns:
             (FlaskAdapter): The adapter.
         """
-        return FlaskAdapter(self)
+        return FlaskUserApi(self)
+
+    def get_user_information(self, user_id, with_roles=True):
+        """
+        Get the user informations for a specific user id.
+        Args:
+            user_id (int): The id of the user to fetch.
+            with_roles (boolean): Fetch the roles with the user.
+
+        Returns:
+            (dict): The user representation.
+        """
+        user = self._db_user_manager.get_user_information(user_id, with_roles)
+        return user
 
     def update(self, payload, user_id):
         """
@@ -176,11 +189,27 @@ class UserApi(object):
             name (unicode): A name to filter on.
 
         Returns:
-            (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
+            (list of dict, boolean): A list of users representations. The boolean stands for if there is more to fetch.
         """
         users, has_next = self._db_user_manager.list_users(limit, offset, email, name)
         return {
             u"users": users,
+            u"has_next": has_next
+        }
+
+    def list_roles(self, limit=20, offset=0):
+        """
+        List the roles from the API.
+        Args:
+            limit (int): The max number of returned roles.
+            offset (int): The cursor.
+
+        Returns:
+            (list of dict, boolean): A list of roles representations. The boolean stands for if there is more to fetch.
+        """
+        roles, has_next = self._db_role_manager.list_roles(limit, offset)
+        return {
+            u"roles": roles,
             u"has_next": has_next
         }
 

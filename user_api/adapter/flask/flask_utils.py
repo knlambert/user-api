@@ -8,7 +8,7 @@ from functools import wraps
 from cerberus import Validator
 from flask import jsonify, request
 from collections import OrderedDict
-from user_api.user_api_exception import ApiUnprocessableEntity
+from user_api.user_api_exception import ApiUnprocessableEntity, ApiException
 
 to_dict = lambda x: json.loads(x, encoding=u"utf8")
 to_unicode_list = lambda x: x.split(u",")
@@ -147,3 +147,14 @@ def flask_check_and_inject_payload(validation_schema):
         return wrapper
 
     return decorated
+
+
+def add_api_error_handler(blueprint):
+    @blueprint.errorhandler(ApiException)
+    def api_error_handler(exception):
+        return flask_constructor_error(
+            exception.message,
+            exception.status_code,
+            custom_error_code=exception.api_error_code,
+            error_payload=exception.payload
+        )

@@ -31,3 +31,18 @@ class DBManager(object):
         """
         session = sessionmaker(self._engine)
         return session()
+
+    @staticmethod
+    def to_role_dict(role):
+        """
+        Take a role Object to transform it into dict.
+        Args:
+            role (Role): The role to process.
+        Returns:
+            (dict): The role.
+
+        """
+        return {
+            col: getattr(role, col)
+            for col in [u"id", u"code", u"name"]
+        }
