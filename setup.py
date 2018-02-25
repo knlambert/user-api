@@ -13,6 +13,7 @@ setup(
         u'flask',
         u"PyJWT",
         u"sqlalchemy",
-        u"cerberus"
+        u"cerberus",
+        "pycrypto"
     ]
 )
