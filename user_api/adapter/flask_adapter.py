@@ -223,25 +223,23 @@ class FlaskAdapter(object):
 
         @user_api_blueprint.errorhandler(ApiException)
         def api_error_handler(exception):
-            return self.get_api_error_handler()(exception)
+            return self.api_error_handler(exception)
 
         return user_api_blueprint
 
     @staticmethod
-    def get_api_error_handler():
+    def api_error_handler(exception):
         """
         Return the error handler associated to the API.
         Returns:
             (callable): The error handler.
         """
-        def api_error_handler(exception):
-            return flask_constructor_error(
-                exception.message,
-                exception.status_code,
-                custom_error_code=exception.api_error_code,
-                error_payload=exception.payload
-            )
-        return api_error_handler
+        return flask_constructor_error(
+            exception.message,
+            exception.status_code,
+            custom_error_code=exception.api_error_code,
+            error_payload=exception.payload
+        )
 
 
 
