@@ -78,7 +78,6 @@ class DBUserManager(DBManager):
         except orm_exc.NoResultFound:
             return DBUserNotFound
 
-
     def update_user_information(self, email, name, active, roles, user_id):
         """
         Update information for a user.
