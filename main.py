@@ -20,8 +20,6 @@ app.register_blueprint(flask_user_api.construct_user_api_blueprint(), url_prefix
 app.register_blueprint(flask_user_api.construct_role_api_blueprint(), url_prefix=u"/api/roles")
 
 
-
-
 @app.route(u"/hello")
 @flask_user_api.has_roles([u"admin"])
 def hello_world():
