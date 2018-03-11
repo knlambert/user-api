@@ -10,7 +10,7 @@ from .db_exception import (
 from .models import User, Role
 from sqlalchemy import exc
 from .db_manager import DBManager
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import load_only, exc as orm_exc, joinedload, noload
 
 
@@ -233,7 +233,7 @@ class DBUserManager(DBManager):
 
         users = session.query(User)\
             .options(load_only(*columns), noload(u"roles"))\
-            .filter(and_(*filters))\
+            .filter(or_(*filters))\
             .offset(offset)\
             .limit(limit+1)
 
