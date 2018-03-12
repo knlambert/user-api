@@ -78,7 +78,7 @@ class DBUserManager(DBManager):
         except orm_exc.NoResultFound:
             return DBUserNotFound
 
-    def update_user_information(self, email, name, active, roles, user_id):
+    def update_user_information(self, email, name, active, user_id, roles=None):
         """
         Update information for a user.
         Args:
@@ -95,25 +95,29 @@ class DBUserManager(DBManager):
         session = self.get_session()
         try:
 
-            user = session.query(User).filter_by(id=user_id).options(joinedload(User.roles)).one()
-            to_save_role_ids = [role.get(u"id") for role in roles]
-            saved_role_ids = [role.id for role in user.roles]
+            if roles is not None:
+                print(roles)
+                print(u"JE TOUCHE AUX ROLES")
+                user = session.query(User).filter_by(id=user_id).options(joinedload(User.roles)).one()
+                to_save_role_ids = [role.get(u"id") for role in roles]
+                saved_role_ids = [role.id for role in user.roles]
 
-            # Remove
-            for role in reversed(list(user.roles)):
-                if role.id not in to_save_role_ids:
-                    user.roles.remove(role)
+                # Remove
+                for role in reversed(list(user.roles)):
+                    if role.id not in to_save_role_ids:
+                        user.roles.remove(role)
 
-            # Add
-            role_ids_to_add = [
-                role_id
-                for role_id in to_save_role_ids
-                if role_id not in saved_role_ids
-            ]
+                # Add
+                role_ids_to_add = [
+                    role_id
+                    for role_id in to_save_role_ids
+                    if role_id not in saved_role_ids
+                ]
 
-            roles_to_add = session.query(Role).filter(Role.id.in_(role_ids_to_add)).all()
-            for role in roles_to_add:
-                user.roles.append(role)
+                roles_to_add = session.query(Role).filter(Role.id.in_(role_ids_to_add)).all()
+                for role in roles_to_add:
+                    user.roles.append(role)
+
 
             session.query(User)\
                 .filter_by(id=user_id)\

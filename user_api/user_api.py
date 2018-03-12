@@ -68,8 +68,17 @@ class UserApi(object):
             (dict): The updated user.
         """
         try:
-            payload[u"user_id"] = user_id
-            user = self._db_user_manager.update_user_information(**payload)
+            user = self._db_user_manager.update_user_information(
+                payload.get(u"email"),
+                payload.get(u"name"),
+                payload.get(u"active"),
+                user_id,
+                payload.get(u"roles")
+            )
+
+            if payload.get(u"password") is not None:
+                self.reset_password(user.get(u"email"), payload.get(u"password"))
+
             return user
         except DBUserConflict:
             raise ApiConflict

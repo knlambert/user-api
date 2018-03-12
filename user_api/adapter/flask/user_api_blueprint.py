@@ -172,14 +172,17 @@ def construct_user_api_blueprint(flask_user_api):
             u"type": u"string",
             u"required": True
         },
+        u"password": {
+            u"type": u"string",
+            u"required": False
+        },
         u"active": {
             u"type": u"boolean",
             u"required": True
         },
         u'roles': {
             u'type': u'list',
-            u"default": [],
-            u"required": True,
+            u"required": False,
             u'schema': {
                 u'type': u'dict',
                 u"allow_unknown": True,
@@ -193,7 +196,7 @@ def construct_user_api_blueprint(flask_user_api):
         }
     })
     def update(payload, user_id):
-        payload[u"roles"] = payload.get(u"roles", [])
+
         if u"id" in payload:
             del payload[u"id"]
 
