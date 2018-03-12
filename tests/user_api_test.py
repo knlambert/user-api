@@ -120,11 +120,13 @@ def test_reset_password_user_not_found(stubbed_user_api, mock_dummy_user):
 
 
 def test_register(stubbed_user_api, mock_dummy_user):
-    user = stubbed_user_api.register(
-        mock_dummy_user[u"email"],
-        mock_dummy_user[u"name"],
-        u"1234"
-    )
+    user = stubbed_user_api.register({
+        u"email": mock_dummy_user[u"email"],
+        u"name": mock_dummy_user[u"name"],
+        u"active": True,
+        u"password": 1234,
+        u"roles": []
+    })
 
     assert user == mock_dummy_user
 
@@ -132,11 +134,13 @@ def test_register(stubbed_user_api, mock_dummy_user):
 def test_register_conflict(stubbed_user_api, mock_dummy_user):
     stubbed_user_api._db_user_manager.save_new_user = Mock(side_effect=DBUserConflict)
     with pytest.raises(ApiConflict):
-        stubbed_user_api.register(
-            mock_dummy_user[u"email"],
-            mock_dummy_user[u"name"],
-            u"1234"
-        )
+        stubbed_user_api.register({
+            u"email": mock_dummy_user[u"email"],
+            u"name": mock_dummy_user[u"name"],
+            u"active": True,
+            u"password": 1234,
+            u"roles": []
+        })
 
 
 def test_get_token_data(stubbed_user_api, mock_dummy_user):

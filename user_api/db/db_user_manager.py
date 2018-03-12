@@ -52,7 +52,7 @@ class DBUserManager(DBManager):
         """
         Get the information of the user from his email.
         Args:
-            user_id (unicode): The email of the user we want the information.
+            user_id (unicode||int): The email of the user we want the information.
             with_roles (boolean): Fetch the roles with the user.
 
         Returns:
@@ -162,34 +162,37 @@ class DBUserManager(DBManager):
 
         session.commit()
 
-    def save_new_user(self, email, name, hash, salt):
+    def save_new_user(self, email, name, active, hash, salt, roles):
         """
         Save a new user.
         Args:
             email (unicode): The email of the user to save.
             name (unicode): The name of the user.
+            active (boolean): Does the user need to be active or not.
             hash (unicode): The hash (password).
             salt (unicode): The salt associated with the hash before saving.
+            roles (list of dict): List of roles to save.
 
         Raises:
             (ValueError): if user breaks a constraint.
         """
         try:
             session = self.get_session()
+
+            roles_to_add = session.query(Role).filter(Role.id.in_([
+                role[u"id"] for role in roles
+            ])).all()
             user = User(
                 email=email,
                 name=name,
+                active=active,
                 hash=hash,
-                salt=salt
+                salt=salt,
+                roles=roles_to_add
             )
             session.add(user)
             session.commit()
-            return {
-                u"id": user.id,
-                u"email": user.email,
-                u"name": user.name,
-                u"active": user.active
-            }
+            return self.get_user_information(user_id=user.id, with_roles=True)
 
         except exc.IntegrityError as err:
             raise DBUserConflict

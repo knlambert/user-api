@@ -79,10 +79,29 @@ def construct_user_api_blueprint(flask_user_api):
         u"password": {
             u"type": u"string",
             u"required": True
+        },
+        u"active": {
+            u"type": u"boolean",
+            u"required": True
+        },
+        u'roles': {
+            u'type': u'list',
+            u"default": [],
+            u"required": True,
+            u'schema': {
+                u'type': u'dict',
+                u"allow_unknown": True,
+                u'schema': {
+                    u"id": {
+                        u"type": u"integer",
+                        u"required": True
+                    }
+                }
+            }
         }
     })
     def register(payload):
-        return flask_construct_response(flask_user_api._user_api.register(**payload), 201)
+        return flask_construct_response(flask_user_api._user_api.register(payload), 201)
 
     @user_api_blueprint.route(u'/token', methods=[u"GET"])
     @flask_user_api.is_connected()
@@ -174,6 +193,7 @@ def construct_user_api_blueprint(flask_user_api):
         }
     })
     def update(payload, user_id):
+        payload[u"roles"] = payload.get(u"roles", [])
         if u"id" in payload:
             del payload[u"id"]
 

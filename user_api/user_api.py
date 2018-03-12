@@ -133,25 +133,24 @@ class UserApi(object):
 
         return payload
 
-    def register(self, email, name, password):
+    def register(self, payload):
         """
         Register a new user.
         Args:
-            email (unicode): The user email.
-            name (unicode): The user name.
-            password (unicode): The user password.
-
+            payload (dict): The user to create.
         Returns:
             (dict): The user auth new information.
         """
         salt = self._auth_manager.generate_salt()
-        hash = self._auth_manager.generate_hash(password, salt)
+        hash = self._auth_manager.generate_hash(payload.get(u"password"), salt)
         try:
             user = self._db_user_manager.save_new_user(
-                email=email,
-                name=name,
+                email=payload.get(u"email"),
+                name=payload.get(u"name"),
+                active=payload.get(u"active"),
                 hash=hash,
-                salt=salt
+                salt=salt,
+                roles=payload.get(u"roles")
             )
             return user
         except DBUserConflict:
