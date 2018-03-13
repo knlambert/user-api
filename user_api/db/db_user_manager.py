@@ -76,7 +76,7 @@ class DBUserManager(DBManager):
             return self.to_user_dict(user, with_roles)
 
         except orm_exc.NoResultFound:
-            return DBUserNotFound
+            raise DBUserNotFound
 
     def update_user_information(self, email, name, active, user_id, roles=None):
         """
