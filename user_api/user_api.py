@@ -61,7 +61,11 @@ class UserApi(object):
         Returns:
             (dict): The user representation.
         """
-        user = self._db_user_manager.get_user_information(user_id, with_roles)
+        try:
+            user = self._db_user_manager.get_user_information(user_id, with_roles)
+        except DBUserNotFound:
+            raise ApiNotFound(u"User '{}' doesn't exist.".format(user_id))
+
         return user
 
     def update(self, payload, user_id):
