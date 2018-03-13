@@ -22,18 +22,25 @@ class UserApi(object):
         self,
         db_user_manager,
         db_role_manager,
-        auth_manager
+        auth_manager,
+        user_created_callback=None,
+        user_updated_callback=None
     ):
         """
         Build the user API
         Args:
             db_user_manager (DBUserManager): Injected object to handle DB interaction.
-            db_group_manager (DBRoleManager): Injected object to handle DB interaction.
+            db_role_manager (DBRoleManager): Injected object to handle DB interaction.
             auth_manager (AuthManager): Injected object to handle Auth interactions.
+            user_created_callback (callable): Optional method to be called when a user is created.
+            user_updated_callback (callable): Optional method to be called when a user is edited.
         """
         self._db_user_manager = db_user_manager
         self._db_role_manager = db_role_manager
         self._auth_manager = auth_manager
+
+        self._user_created_callback = user_created_callback
+        self._user_updated_callback = user_updated_callback
 
     def get_flask_user_api(self):
         """
@@ -78,6 +85,10 @@ class UserApi(object):
 
             if payload.get(u"password") is not None:
                 self.reset_password(user.get(u"email"), payload.get(u"password"))
+
+
+            if self._user_updated_callback is not None:
+                self._user_updated_callback(user)
 
             return user
         except DBUserConflict:
@@ -161,6 +172,9 @@ class UserApi(object):
                 salt=salt,
                 roles=payload.get(u"roles")
             )
+            if self._user_created_callback is not None:
+                self._user_created_callback(user)
+
             return user
         except DBUserConflict:
             raise ApiConflict(u"User already exists.")

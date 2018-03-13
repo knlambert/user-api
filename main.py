@@ -7,10 +7,21 @@ from user_api import create_user_api
 app = Flask(__name__)
 app.debug = True
 
+
+def on_user_created(user):
+    print(u"CREATED {}".format(user))
+
+
+def on_user_updated(user):
+    print(u"UPDATED {}".format(user))
+
+
 # Create user api object
 user_api = create_user_api(
     db_url=u"mysql://root:localroot1234@127.0.0.1/user_api",
-    jwt_secret=u"DUMMY"
+    jwt_secret=u"DUMMY",
+    user_created_callback=on_user_created,
+    user_updated_callback=on_user_updated
 )
 
 flask_user_api = user_api.get_flask_user_api()
@@ -26,6 +37,7 @@ def hello_world():
     return jsonify({
         u"message": u"hello"
     }), 200
+
 
 # Run flask server
 app.run(port=5001, debug=True)

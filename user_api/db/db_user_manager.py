@@ -96,6 +96,7 @@ class DBUserManager(DBManager):
         try:
 
             if roles is not None:
+
                 user = session.query(User).filter_by(id=user_id).options(joinedload(User.roles)).one()
                 to_save_role_ids = [role.get(u"id") for role in roles]
                 saved_role_ids = [role.id for role in user.roles]
@@ -116,7 +117,6 @@ class DBUserManager(DBManager):
                 for role in roles_to_add:
                     user.roles.append(role)
 
-
             session.query(User)\
                 .filter_by(id=user_id)\
                 .update({
@@ -127,6 +127,8 @@ class DBUserManager(DBManager):
             session.commit()
         except exc.IntegrityError:
             raise DBUserConflict
+        except orm_exc.NoResultFound:
+            raise DBUserNotFound
 
         session.commit()
         return self.get_user_information(user_id, with_roles=True)
