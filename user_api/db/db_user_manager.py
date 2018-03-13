@@ -96,8 +96,6 @@ class DBUserManager(DBManager):
         try:
 
             if roles is not None:
-                print(roles)
-                print(u"JE TOUCHE AUX ROLES")
                 user = session.query(User).filter_by(id=user_id).options(joinedload(User.roles)).one()
                 to_save_role_ids = [role.get(u"id") for role in roles]
                 saved_role_ids = [role.id for role in user.roles]
