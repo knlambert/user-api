@@ -7,6 +7,7 @@ from flask import request, redirect
 from user_api.user_api_exception import (
     ApiUnauthorized
 )
+from .flask_utils import add_api_error_handler
 from .user_api_blueprint import construct_user_api_blueprint
 from .role_api_blueprint import construct_role_api_blueprint
 
