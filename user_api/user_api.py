@@ -96,6 +96,26 @@ class UserApi(object):
         except DBUserNotFound:
             raise ApiNotFound(u"User not found.")
 
+    def authenticate_no_password(self, email):
+        """
+        Used to authenticate without password (for Google authentication for example).
+        This method isn't mapped to the flask rest API and should be used with caution.
+        Args:
+            email (unicode): The email of the user to connect.
+
+        Returns:
+            (dict, unicode): The user auth information and the token.
+        """
+        payload = self._db_user_manager.get_user_information(email)
+        if not payload[u"active"]:
+            raise ApiUnauthorized(u"User is not active.")
+
+        payload[u"roles"] = self._db_role_manager.get_user_roles(
+            user_id=payload[u"id"]
+        )
+        token = self._auth_manager.generate_token(payload)
+        return payload, token
+    
     def authenticate(self, email, password):
         """
         Authenticate a user.
@@ -104,7 +124,7 @@ class UserApi(object):
             password (unicode): The user password.
 
         Returns:
-            (dict): The user auth information.
+            (dict, unicode): The user auth information and the token.
         """
         try:
             salt = self._db_user_manager.get_user_salt(email=email)

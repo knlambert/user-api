@@ -30,7 +30,10 @@ def construct_user_api_blueprint(flask_user_api):
     })
     def login(payload):
 
-        token_payload, token = flask_user_api._user_api.authenticate(**payload)
+        token_payload, token = flask_user_api._user_api.authenticate(
+            email=payload.get(u"email"),
+            password=payload.get(u"password")
+        )
 
         response = jsonify(token_payload)
         response.set_cookie(
