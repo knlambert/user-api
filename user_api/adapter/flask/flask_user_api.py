@@ -7,6 +7,7 @@ from flask import request, redirect
 from user_api.user_api_exception import (
     ApiUnauthorized
 )
+from .flask_utils import add_api_error_handler
 from .user_api_blueprint import construct_user_api_blueprint
 from .role_api_blueprint import construct_role_api_blueprint
 
@@ -73,7 +74,17 @@ class FlaskUserApi(object):
             return wrapper
 
         return decorator
+    
+    @staticmethod
+    def add_api_error_handler(blueprint):
+        """
+        Handle API errors.
+        Args:
+            blueprint (Blueprint): The blueprint to handle errors form.
 
+        """
+        add_api_error_handler(blueprint)
+        
     def construct_user_api_blueprint(self):
         return construct_user_api_blueprint(self)
 
