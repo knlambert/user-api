@@ -12,10 +12,11 @@ setup(
         u"user_api.db"
     ],
     install_requires=[
-        u"ecdsa",
-        u'flask',
-        u"PyJWT",
-        u"sqlalchemy",
-        u"cerberus"
+        u"ecdsa==0.13",
+        u'flask>=1.0.2,<2',
+        u"PyJWT>=1.6.4,<2",
+        u'SQLAlchemy>=1.2,<2',
+        u"Cerberus>=1.2,<2",
+        u"pycrypto>=2.6.1,<2"
     ]
 )
