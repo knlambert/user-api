@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name=u'user_api',    # This is the name of your PyPI-package.
-    version=u'0.4.0',                          # Update the version number for new releases
+    version=u'0.4.1',                          # Update the version number for new releases
     packages=[
         u'user_api',
         u"user_api.adapter",
