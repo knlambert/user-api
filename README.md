@@ -4,7 +4,7 @@
 This repository is a python lib designed to handle the authentication on my personal projects. 
 The projects uses :
  - Python2.
- - MySQL.
+ - SQLAlchemy.
  - Flask.
  - PBKDF2 algorithm.
  - A JWT token.
@@ -16,69 +16,46 @@ The projects uses :
 To install the lib :
 
 ```bash
-pip2 install https://github.com/knlambert/py-duck-user-api.git
+pip2 install https://github.com/knlambert/py-modest-user-api.git
 ```
 
 ## The database
 
-Execute the database/schema.sql file given in the repository.
-
+To generate the database and create the admin user, use the init_api.py script.
 ```sql
-source database/schema.sql
+source venv/bin/activate
+python2 init_api.py mysql://login:password@host/user_api jwt_secret password_admin
 ```
+## Flask adapter
 
-## Integration
-
-### Hello auth
-You can have a config.py file at the root of your flask App, with a CONFIG variable in it.
-Here the adviced structure (you can add anything you want in this config, but do not use the auth section).
-
+### Base setup
 ```python
-CONFIG = {
-    u"auth": {
-        u"token": {
-            u"lifetime": 24 * 3600 * 30, # 30 days.
-            u"secret": u"DUMMYSECRET" # Do put a real secret there.
-        }
-    }
-}
-```
+# coding: utf-8
 
-Then, declare the necessary webservices :
-
-```python
 from flask import Flask
-from user_api.user_api import UserApi 
-from user_api.flask_user_api import FlaskUserApi 
-from config import CONFIG
+from user_api import create_user_api
 
 # create flask server
 app = Flask(__name__)
+app.debug = True
 
 # Create user api object
-user_api = UserApi(
-    db_host=u"127.0.0.1",
-    db_user=u"root",
-    db_passwd=u"localroot1234",
-    db_name=u"user_api",
-    jwt_secret=CONFIG[u"auth"][u"token"][u"secret"],
-    jwt_lifetime=CONFIG[u"auth"][u"token"][u"lifetime"]
+user_api = create_user_api(
+    db_url=u"mysql://root:localroot1234@127.0.0.1/user_api",
+    jwt_secret=u"DUMMY"
 )
-
-# Use flask shortcut
-flask_user_api = FlaskUserApi(user_api)
 
 # Register the blueprint
 app.register_blueprint(
-    flask_user_api.construct_blueprint(), 
-    url_prefix=u"/api/user"
+    user_api.get_flask_adapter().construct_users_blueprint(),
+    url_prefix=u"/api/users"
 )
 
 # Run flask server
 app.run(port=5000, debug=True)
 ```
 
-### Authentify my custom web services (Flask)
+### Enable auth on an endpoint
 
 Just use the built-in "is_connected" decorator for flask.
 
@@ -94,94 +71,157 @@ def dummy_route():
 ```
 
 
-# Web services
+# API
 
-## How to authentify ?
+## How does the session work ?
 
 Some services will send you a 401 if your are not authenticated.
 To evoid that, do not forget to set the authentication header.
-The API also works with a cookie (name it "credentials" with the token as value).
-
 ```bash
 Authentication: Bearer eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0
 ```
+The API also works with a auth cookie which is set server side at connection.
 
-## Services 
-The web services are declared in the user_api/blueprint.py file.
-HTTPS is strongly recommended.
+## Authentify
 
-### Authentify
-
-Use this service to authentify your user.
-Send user & password, then get a token.
+Use this service to connect your user.
+Send email & password to get a token.
 
 ```bash
-POST api/user/authentify
+POST http://localhost:5000/api/users/login
 {
   "email": "dummy@dummy.net",
   "password": "JustMyPassword"
 }
-
-200
+```
+```bash
 {
-  "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
+  "active": true,
+  "email": "dummy@dummy.net",
+  "exp": 1517194340,
+  "id": 1,
+  "name": "Dummer",
+  "roles": [
+    {
+      "code": "admin",
+      "id": 1,
+      "name": "Admin"
+    }
+  ]
 }
 ```
 
-### Reset password [Authenticated]
+## Reset password [Authenticated]
 
 Use this service to reset the password of a user.
 Send email & password, get an updated Token.
 
-```bash
-POST api/user/reset_password
-{
-    "email": "dummy@dummy.net",
-    "password": "JustMyPassword"
-}
+You must be connected to use this service.
 
-200
+Payload :
+
+```bash
+POST http://localhost:5000/api/users/reset-password
 {
-  "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
+    "email": "admin@myapp.net",
+    "password": "DummyPassword"
+}
+```
+```bash
+{
+    "active": true,
+    "email": "admin@myapp.net",
+    "id": 1,
+    "name": "Admin"
 }
 ```
 
-### Register a new user [Authenticated]
+## Register a new user [Authenticated]
 
 Use this web service to create a user.
+
+You must be connected to use this service.
+
 ```bash
-POST api/user/register
+POST http://localhost:5000/api/users/register
 {
     "email": "dummy@dummy.net",
     "password": "JustMyPassword",
     "name": "Dummy Doe"
 }
-
-201
+```
+```bash
 {
-  "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
+    "email": "dummy@dummy.net",
+    "name": "Dummy Doe"
+    "id": 42,
+    "active": true 
 }
 ```
 
-### Check token [Authenticated]
+## Get connected user information [Authenticated]
 
 When your user is authenticated, the password should never be sent again.
-Then, use this service to check the token, and extract the informations stored inside.
+Then, use this service to check the token, and extract the information stored inside.
 Please pay attention to the "exp" field. This is an UTC timestamp giving you the expiration date of the token.
 
 Past this time, the token is not going to work anymore.
 
-```bash
-POST /token/check/
-{
-    "token": "eyJ0eXAiOisqdJKV1QiLCJhbGci1NiJ9.eyJlbWFpbCI6ImtldmluLmxhbWJlcnRAZGV2b3RlYW1nY2xvdWQuY29tIiwiZXhwIjoxNDkCJuYW1lIjoiS2V2aW4gTEFNQkVSVCIsImlkIjoyfQ.sBatRMvPKStk5vt9f2oCvxfM0ljqqsdqdqsrZPkEgVKsY0"
-}
+You must be connected to use this service.
 
-200
+```bash
+GET http://localhost:5000/api/users/me
+```
+```bash
 {
   "email": "dummy@dummy.net", 
   "exp": 1497989335, 
   "id": 2, 
   "name": "Dummy Doe"
+}
+```
+
+## List users [Authenticated]
+
+This service allows to list user in the database.
+You can filter with a LIKE operator on both fields email and name.
+
+You must be connected to use this service.
+
+```bash
+GET http://localhost:5000/api/users/?email=myapp.net&name=admin
+```
+```bash
+{
+  "has_next": false,
+  "users": [
+    {
+        "active": true,
+        "email": "admin@myapp.net",
+        "id": 1,
+        "name": "Admin"
+    }
+  ]
+}
+```
+
+## Update a user [Authenticated]
+
+Allows to update a user information.
+
+```bash
+PUT http://localhost:5000/api/users/42
+{
+    "email": "dummy@dummy.net",
+    "name": "Dummy Doe",
+    "active": false
+}
+```
+```bash
+{
+    "email": "dummy@dummy.net",
+    "name": "Dummy Doe"
+    "id": 42,
+    "active": true 
 }
 ```

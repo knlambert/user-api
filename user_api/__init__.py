@@ -1,10 +1,10 @@
-from .user_api import UserApi
+from .helpers import create_user_api
 from .user_api_exception import (
-    ApiException,
+    ApiUnprocessableEntity,
     ApiConflict,
+    ApiException,
     ApiForbidden,
     ApiNotFound,
     ApiRoleMissing,
-    ApiUnauthorized,
-    ApiUnprocessableEntity
+    ApiUnauthorized
 )
