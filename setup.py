@@ -17,6 +17,6 @@ setup(
         u"PyJWT>=1.6.4,<2",
         u'SQLAlchemy>=1.2,<2',
         u"Cerberus>=1.2,<2",
-        u"pycrypto>=2.6.1,<2"
+        u"pycrypto>=2.6.1,<3"
     ]
 )
