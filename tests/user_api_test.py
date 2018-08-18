@@ -26,7 +26,10 @@ def mock_dummy_user():
         u"id": 3,
         u"email": u"dumb@laposte.net",
         u"name": u"Dummer",
-        u"active": 1
+        u"active": 1,
+        "customer": {
+            "id": 1
+        }
     }
 
 
@@ -69,7 +72,7 @@ def test_update(stubbed_user_api, mock_dummy_user):
     mock_dummy_user[u"name"] = u"New name"
 
     with pytest.raises(ApiNotFound):
-        stubbed_user_api.update(mock_dummy_user, mock_dummy_user[u"id"])
+        stubbed_user_api.update(1, mock_dummy_user[u"id"], mock_dummy_user)
 
 
 def test_authenticate_user(stubbed_user_api, mock_dummy_user):
@@ -120,7 +123,7 @@ def test_reset_password_user_not_found(stubbed_user_api, mock_dummy_user):
 
 
 def test_register(stubbed_user_api, mock_dummy_user):
-    user = stubbed_user_api.register({
+    user = stubbed_user_api.register(1, {
         u"email": mock_dummy_user[u"email"],
         u"name": mock_dummy_user[u"name"],
         u"active": True,
@@ -134,7 +137,7 @@ def test_register(stubbed_user_api, mock_dummy_user):
 def test_register_conflict(stubbed_user_api, mock_dummy_user):
     stubbed_user_api._db_user_manager.save_new_user = Mock(side_effect=DBUserConflict)
     with pytest.raises(ApiConflict):
-        stubbed_user_api.register({
+        stubbed_user_api.register(1, {
             u"email": mock_dummy_user[u"email"],
             u"name": mock_dummy_user[u"name"],
             u"active": True,
@@ -157,14 +160,14 @@ def test_is_token_valid(stubbed_user_api):
 
 
 def test_list_users(stubbed_user_api, mock_dummy_user):
-    assert stubbed_user_api.list_users(10, 5, u"dumb@laposte.net", u"Dummer") == {
+    assert stubbed_user_api.list_users(1, 10, 5, u"dumb@laposte.net", u"Dummer") == {
         u"users": [
             mock_dummy_user
         ],
         u"has_next": False
     }
     stubbed_user_api._db_user_manager.list_users.assert_called_once_with(
-        10, 5, u"dumb@laposte.net", u"Dummer"
+        1, 10, 5, u"dumb@laposte.net", u"Dummer"
     )
 
 

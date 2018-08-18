@@ -4,7 +4,7 @@ User API blueprint (roles section).
 """
 
 import base64
-from flask_utils import (
+from .flask_utils import (
     flask_check_args,
     add_api_error_handler,
     flask_constructor_error,

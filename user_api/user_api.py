@@ -5,7 +5,7 @@ from .db.db_exception import (
     DBUserConflict,
     DBUserNotFound
 )
-from user_api_exception import (
+from .user_api_exception import (
     ApiConflict,
     ApiNotFound,
     ApiForbidden,
@@ -51,10 +51,16 @@ class UserApi(object):
         """
         return FlaskUserApi(self)
 
-    def get_user_information(self, user_id, with_roles=True):
+    def get_user_information(
+            self, 
+            customer_id: int, 
+            user_id: int, 
+            with_roles=True
+        ):
         """
         Get the user informations for a specific user id.
         Args:
+            customer_id (int): The ID of the customer of the user requesting.
             user_id (int): The id of the user to fetch.
             with_roles (boolean): Fetch the roles with the user.
 
@@ -63,22 +69,31 @@ class UserApi(object):
         """
         try:
             user = self._db_user_manager.get_user_information(user_id, with_roles)
+            if user["customer"]["id"] != customer_id:
+                raise ApiForbidden
+
         except DBUserNotFound:
             raise ApiNotFound(u"User '{}' doesn't exist.".format(user_id))
 
         return user
 
-    def update(self, payload, user_id):
+    def update(self, customer_id: int, user_id: int, payload: dict):
         """
         Update a user.
         Args:
-            payload (dict): The user to update.
+            customer_id (int): The customer id of the user requesting.
             user_id (int): The ID of the user to update.
+            payload (dict): The user to update.
 
         Returns:
             (dict): The updated user.
         """
         try:
+            user = self._db_user_manager.get_user_information(
+                user_id)
+            if user["customer"]["id"] != customer_id:
+                raise ApiForbidden
+
             user = self._db_user_manager.update_user_information(
                 payload.get(u"email"),
                 payload.get(u"name"),
@@ -89,7 +104,6 @@ class UserApi(object):
 
             if payload.get(u"password") is not None:
                 self.reset_password(user.get(u"email"), payload.get(u"password"))
-
 
             if self._user_updated_callback is not None:
                 self._user_updated_callback(user)
@@ -177,10 +191,11 @@ class UserApi(object):
 
         return payload
 
-    def register(self, payload):
+    def register(self, customer_id: int, payload: dict):
         """
         Register a new user.
         Args:
+            customer_id (int): The related customer.
             payload (dict): The user to create.
         Returns:
             (dict): The user auth new information.
@@ -194,7 +209,8 @@ class UserApi(object):
                 active=payload.get(u"active"),
                 hash=hash,
                 salt=salt,
-                roles=payload.get(u"roles")
+                roles=payload.get(u"roles"),
+                customer_id=customer_id
             )
             if self._user_created_callback is not None:
                 self._user_created_callback(user)
@@ -225,10 +241,11 @@ class UserApi(object):
         """
         return self._auth_manager.is_token_valid(token)
 
-    def list_users(self, limit=20, offset=0, email=None, name=None):
+    def list_users(self, customer_id: int, limit=20, offset=0, email=None, name=None):
         """
         List the users from the API.
         Args:
+            customer_id (int): The corresponding customer.
             limit (int): The max number of returned users.
             offset (int): The cursor.
             email (unicode): An email to filter on.
@@ -237,7 +254,7 @@ class UserApi(object):
         Returns:
             (list of dict, boolean): A list of users representations. The boolean stands for if there is more to fetch.
         """
-        users, has_next = self._db_user_manager.list_users(limit, offset, email, name)
+        users, has_next = self._db_user_manager.list_users(customer_id, limit, offset, email, name)
         return {
             u"users": users,
             u"has_next": has_next
