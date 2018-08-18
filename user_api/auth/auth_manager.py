@@ -1,23 +1,11 @@
 # coding: utf-8
 
-import Crypto.Protocol.KDF
-import Crypto.Random
 import jwt
 import time
 import datetime
-from jwt.contrib.algorithms.pycrypto import RSAAlgorithm
-from jwt.contrib.algorithms.py_ecdsa import ECAlgorithm
-
-# Force compatibility with appengine (legacy mode).
-try:
-    jwt.register_algorithm(u'RS256', RSAAlgorithm(RSAAlgorithm.SHA256))
-except ValueError:
-    pass
-try:
-    jwt.register_algorithm(u'ES256', ECAlgorithm(ECAlgorithm.SHA256))
-except ValueError:
-    pass
-
+import Crypto.Random
+import Crypto.Protocol.KDF
+import binascii
 
 class AuthManager(object):
     def __init__(self, jwt_secret, jwt_lifetime):
@@ -30,13 +18,13 @@ class AuthManager(object):
         Generate a salt.
         :return (unicode): The salt.
         """
-        salt = Crypto.Random.new().read(32).encode(u'hex').decode(u"utf-8")
+        salt = binascii.hexlify(Crypto.Random.new().read(32)).decode()
         return salt
 
     @staticmethod
     def generate_hash(password, salt):
         hash = Crypto.Protocol.KDF.PBKDF2(password, salt)
-        hash = hash.encode(u'hex').decode(u'utf-8')
+        hash = binascii.hexlify(hash).decode()
         return hash
 
     def generate_token(self, payload):

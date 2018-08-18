@@ -18,8 +18,8 @@ def on_user_updated(user):
 
 # Create user api object
 user_api = create_user_api(
-    db_url=u"mysql://root:localroot1234@127.0.0.1/user_api",
-    jwt_secret=u"DUMMY",
+    db_url=u"mysql+mysqlconnector://user_api_sa:password@127.0.0.1/user_api",
+    jwt_secret=u"dummy_secret",
     user_created_callback=on_user_created,
     user_updated_callback=on_user_updated
 )
