@@ -127,9 +127,9 @@ def flask_check_and_inject_payload(validation_schema):
             if u"application/json" in request.headers.get(u"Content-Type"):
                 try:
                     payload_dict = json.loads(request.data, object_pairs_hook=OrderedDict, encoding=u"utf8")
-                except ValueError as err:
+                except Exception as err:
                     return flask_constructor_error(
-                        message=err.message,
+                        message=getattr(err, "message", "Wrong payload."),
                         custom_error_code=u"WRONG_PAYLOAD",
                         status=422
                     )
