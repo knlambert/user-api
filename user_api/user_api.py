@@ -280,7 +280,7 @@ class UserApi(object):
         """
         Check if a token is authorized for a role list.
         Args:
-            token (unicode): The token to check.
+            token (Dict): The token to check.
             roles (list of unicode): The list of roles code to check.
 
         Returns:
@@ -289,7 +289,6 @@ class UserApi(object):
         Raises
             (ApiForbidden): Raised if the token doesn't have the expected roles.
         """
-        token = self._auth_manager.get_token_data(token)
         missing_roles = []
         user_roles = [role[u"code"] for role in token[u"roles"]]
         for required_role in roles:
