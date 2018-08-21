@@ -20,16 +20,17 @@ args = parser.parse_args()
 def init_db():
     engine = create_engine(args.db_url, echo=True)
     conn = engine.connect()
-    conn.execute("CREATE DATABASE IF NOT EXISTS user_api;")
+    conn.execution_options(isolation_level="AUTOCOMMIT")
+    conn.execute("CREATE DATABASE user_api;")
     conn.close()
     engine = create_engine("{}/{}".format(args.db_url, "user_api", echo=True))
     Base.metadata.create_all(bind=engine)
     conn = engine.connect()
-    conn.execute("CREATE USER 'user_api_sa'@'%' IDENTIFIED BY '{}'".format(
-        args.user_api_sa_password
-    ))
-    conn.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'user_api_sa'")
-    conn.execute("GRANT ALL PRIVILEGES ON user_api.* TO 'user_api_sa'")
+    # conn.execute("CREATE USER 'user_api_sa'@'%' IDENTIFIED BY '{}'".format(
+        # args.user_api_sa_password
+    # ))
+    # conn.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'user_api_sa'")
+    # conn.execute("GRANT ALL PRIVILEGES ON user_api.* TO 'user_api_sa'")
     conn.execute("INSERT INTO customer VALUES(1, NULL);")
     conn.close()
 
