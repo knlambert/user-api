@@ -118,7 +118,7 @@ def add_user(
         "password": password
     })
     # Fetch created Admin.
-    admin = session.query(User).filter_by(email=u"admin").one()
+    admin = session.query(User).filter_by(email=email).one()
     # Add admin to admin role.
     admin_role = Role(code=u"admin", name=u"Admin")
     admin_role.users.append(admin)
