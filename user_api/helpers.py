@@ -10,6 +10,7 @@ from .auth.auth_manager import AuthManager
 from user_api.db.models import Base, Role, User, Customer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 
 
 def create_user_api(
@@ -120,7 +121,11 @@ def add_user(
     # Fetch created Admin.
     admin = session.query(User).filter_by(email=email).one()
     # Add admin to admin role.
-    admin_role = Role(code=u"admin", name=u"Admin")
+    try:
+        admin_role = session.query(Role).filter_by(code="admin").one()
+    except NoResultFound:
+        admin_role = Role(code=u"admin", name=u"Admin")
+
     admin_role.users.append(admin)
     session.add(admin_role)
     session.commit()
