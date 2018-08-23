@@ -109,7 +109,7 @@ def add_user(
 
     # Create Admin user.
     user_api.register(
-        1, {
+        customer_id, {
         "email": email,
         "name": username,
         "active": True,
