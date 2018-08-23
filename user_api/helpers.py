@@ -7,6 +7,9 @@ from .user_api import UserApi
 from .db.db_user_manager import DBUserManager
 from .db.db_role_manager import DBRoleManager
 from .auth.auth_manager import AuthManager
+from user_api.db.models import Base, Role, User
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 def create_user_api(
@@ -38,3 +41,75 @@ def create_user_api(
         user_created_callback=user_created_callback,
         user_updated_callback=user_updated_callback
     )
+
+def init_db(
+        db_url: str,
+        drop_before: bool = False
+    ):
+    """
+    Init the user api database.
+    Args:
+        db_url (str): The connection string to the database.
+        drop_before (bool): If true, the database is deleted first.
+    """
+    engine = create_engine(db_url, echo=True)
+    conn = engine.connect()
+    conn.execution_options(isolation_level="AUTOCOMMIT")
+    if drop_before:
+        conn.execute("DROP DATABASE IF EXISTS user_api")
+    conn.execute("CREATE DATABASE user_api;")
+    conn.close()
+    engine = create_engine("{}/{}".format(db_url, "user_api", echo=True))
+    Base.metadata.create_all(bind=engine)
+    conn = engine.connect()
+    conn.execute("INSERT INTO customer VALUES(1, NULL);")
+    conn.close()
+
+
+def add_user(
+        db_url: str, 
+        jwt_secret: str,
+        username: str,
+        email: str,
+        password: str
+    ):
+    """
+    Create a base user in the database.
+    Args:
+        db_url (str): The connection string to the database.
+        jwt_secret (str): The JWT secret used to generate the hash in the DB.
+        username (str): The name of the user to create.
+        email (str): The email of the user to create.
+        password (str): The password of the user to create.
+    """
+    db_url = "{}/{}".format(db_url, "user_api")
+    engine = create_engine(db_url, echo=True)
+    session = scoped_session(
+        sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    )
+
+    # Create user api object
+    user_api = create_user_api(
+        db_url=db_url,
+        jwt_secret=jwt_secret
+    )
+
+    # Create Admin user.
+    user_api.register(
+        1, {
+        "email": email,
+        "name": username,
+        "active": True,
+        "roles": [
+            {"id": 1}
+        ],
+        "password": password
+    })
+    # Fetch created Admin.
+    admin = session.query(User).filter_by(email=u"admin").one()
+    # Add admin to admin role.
+    admin_role = Role(code=u"admin", name=u"Admin")
+    admin_role.users.append(admin)
+    session.add(admin_role)
+    session.commit()
+

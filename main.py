@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from flask import Flask, jsonify
-from user_api import create_user_api
+from user_api.helpers import create_user_api
 
 # create flask server
 app = Flask(__name__)
