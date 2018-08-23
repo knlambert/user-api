@@ -45,7 +45,7 @@ def construct_user_api_blueprint(flask_user_api):
 
         return response, 200
     
-    def get_customer_id(request):
+    def get_customer_id(request) -> int:
         """
         Returns the customer ID from the flask token.
         Args:
@@ -54,8 +54,9 @@ def construct_user_api_blueprint(flask_user_api):
             (int): The customer ID.
         """
         token = flask_user_api.check_token(request)
-        token_payload = flask_user_api._user_api.get_token_data(token)
-        return token_payload["customer"]["id"]
+        if token is not None:
+            return token["customer"]["id"]
+        return None
 
 
     @user_api_blueprint.route(u'/reset-password', methods=[u'POST'])
