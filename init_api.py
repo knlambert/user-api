@@ -3,7 +3,7 @@
 
 import argparse
 import user_api
-from user_api.helpers import init_db, add_user
+from user_api.helpers import init_db, add_user, add_customer
 
 parser = argparse.ArgumentParser(description=u'Init the API.')
 parser.add_argument(u'db_url', help=u"The connection URL to the database where to perform operations.")
@@ -13,11 +13,13 @@ parser.add_argument(u'--drop-before', action='store_true', default=False, help='
 args = parser.parse_args()
 
 init_db(db_url=args.db_url, drop_before=args.drop_before)
+add_customer(args.db_url + "/user_api", 1)
 add_user(
     db_url=args.db_url, 
     jwt_secret=args.jwt_secret,
     username="admin",
     email="admin",
-    password=args.admin_password
+    password=args.admin_password,
+    customer_id=1
 )
 

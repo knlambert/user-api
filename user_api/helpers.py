@@ -7,7 +7,7 @@ from .user_api import UserApi
 from .db.db_user_manager import DBUserManager
 from .db.db_role_manager import DBRoleManager
 from .auth.auth_manager import AuthManager
-from user_api.db.models import Base, Role, User
+from user_api.db.models import Base, Role, User, Customer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -61,17 +61,27 @@ def init_db(
     conn.close()
     engine = create_engine("{}/{}".format(db_url, "user_api", echo=True))
     Base.metadata.create_all(bind=engine)
-    conn = engine.connect()
-    conn.execute("INSERT INTO customer VALUES(1, NULL);")
-    conn.close()
 
+def add_customer(db_url: str, customer_id: int):
+    """
+    Add a customer in the database.
+    Args:
+        db_url (str): The connection string to the database.
+        customer_id (int): The customer ID relative to the user.
+    """
+    engine = create_engine(db_url, echo=True)
+    session = sessionmaker(engine)()
+    customer = Customer(id=customer_id)
+    session.add(customer)
+    session.commit()
 
 def add_user(
         db_url: str, 
         jwt_secret: str,
         username: str,
         email: str,
-        password: str
+        password: str,
+        customer_id: int = 1
     ):
     """
     Create a base user in the database.
@@ -81,6 +91,7 @@ def add_user(
         username (str): The name of the user to create.
         email (str): The email of the user to create.
         password (str): The password of the user to create.
+        customer_id (int): The customer ID relative to the user.
     """
     db_url = "{}/{}".format(db_url, "user_api")
     engine = create_engine(db_url, echo=True)
