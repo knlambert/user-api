@@ -13,7 +13,7 @@ parser.add_argument(u'--drop-before', action='store_true', default=False, help='
 args = parser.parse_args()
 
 init_db(db_url=args.db_url, drop_before=args.drop_before)
-add_customer(args.db_url + "/user_api", 1)
+add_customer(args.db_url, 1)
 add_user(
     db_url=args.db_url, 
     jwt_secret=args.jwt_secret,

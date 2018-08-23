@@ -69,6 +69,7 @@ def add_customer(db_url: str, customer_id: int):
         db_url (str): The connection string to the database.
         customer_id (int): The customer ID relative to the user.
     """
+    db_url = "{}/{}".format(db_url, "user_api")
     engine = create_engine(db_url, echo=True)
     session = sessionmaker(engine)()
     customer = Customer(id=customer_id)
