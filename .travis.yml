@@ -7,7 +7,6 @@ install:
 script:
   - pip3 --version
   - python3 -m pytest tests
-before_deploy: pip install twine --user
 deploy:
   provider: pypi
   user: sqlcollection
