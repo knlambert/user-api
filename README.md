@@ -1,67 +1,85 @@
 
-# Introduction
+# Introduction.
 
-This repository is a python lib designed to handle the authentication on my personal projects. 
-The projects uses :
- - Python2.
- - SQLAlchemy.
- - Flask.
- - PBKDF2 algorithm.
- - A JWT token.
+User API built with Python 3 and MySQL.
 
-# Setting up
+# Setting up.
 
-## Installation
+## Installation.
 
-To install the lib :
+To install the lib as a third party.
 
 ```bash
-pip2 install https://github.com/knlambert/py-modest-user-api.git
+pip3 install user-api
 ```
 
-## The database
+## The database.
 
 To generate the database and create the admin user, use the init_api.py script.
+First set the dev env.
 ```sql
+virtualenv -p python3 venv
 source venv/bin/activate
-python2 init_api.py mysql://login:password@host/user_api jwt_secret password_admin
+pip3 install -r requirements.txt
 ```
-## Flask adapter
+Then run the init script :
+```bash
+python3 init_api.py <db_url> \
+    <jwt_secret> <admin_password> <user_api_sa_password>
+```
+with the following parameters :
+- **db_url** : the connection to the database (mysql+mysqlconnector://root:<root_password>@<db_ip>)
+- **jwt_secret** : A secret used to generate the JWT token.
+- **admin_password**: The password given to the admin user which will be created.
+- **user_api_sa_password** : The password for the created service account (to use in the API config).
 
-### Base setup
+## Run the API.
+
+Use the main.py entry point :
+```bash
+source venv/bin/activate
+python3 main.py
+```
+
+## Flask Integration.
+
+### Base.
 ```python
-# coding: utf-8
-
-from flask import Flask
+from flask import Flask, jsonify
 from user_api import create_user_api
-
 # create flask server
 app = Flask(__name__)
 app.debug = True
+# Custom callbacks.
+def on_user_created(user):
+    print("CREATED {}".format(user))
+
+def on_user_updated(user):
+    print("UPDATED {}".format(user))
 
 # Create user api object
 user_api = create_user_api(
-    db_url=u"mysql://root:localroot1234@127.0.0.1/user_api",
-    jwt_secret=u"DUMMY"
+    db_url="mysql+mysqlconnector://user_api_sa:password@127.0.0.1/user_api",
+    jwt_secret="dummy_secret",
+    user_created_callback=on_user_created,
+    user_updated_callback=on_user_updated
 )
 
-# Register the blueprint
-app.register_blueprint(
-    user_api.get_flask_adapter().construct_users_blueprint(),
-    url_prefix=u"/api/users"
-)
+flask_user_api = user_api.get_flask_user_api()
+
+# Register the blueprints
+app.register_blueprint(flask_user_api.construct_user_api_blueprint(), url_prefix="/api/users")
+app.register_blueprint(flask_user_api.construct_role_api_blueprint(), url_prefix="/api/roles")
 
 # Run flask server
-app.run(port=5000, debug=True)
+app.run(port=5001, debug=True)
 ```
 
-### Enable auth on an endpoint
+### Enable auth on an endpoint.
 
-Just use the built-in "is_connected" decorator for flask.
+Use the built-in "is_connected" decorator for flask.
 
 ```python
-app = Flask(__name__)
-
 @app.route(u'/dummy', methods=[u'GET'])
 @user_api.is_connected 
 def dummy_route():
@@ -70,6 +88,17 @@ def dummy_route():
     })
 ```
 
+### Enable role on an endpoint.
+
+Use use the built-in "has_roles" decorator for flask.
+```python
+@app.route("/hello")
+@flask_user_api.has_roles(["admin"])
+def hello_world():
+    return jsonify({
+        "message": "hello"
+    }), 200
+```
 
 # API
 
@@ -88,26 +117,33 @@ Use this service to connect your user.
 Send email & password to get a token.
 
 ```bash
-POST http://localhost:5000/api/users/login
+POST http://localhost:5001/api/users/login
+```
+Payload:
+```json
 {
-  "email": "dummy@dummy.net",
-  "password": "JustMyPassword"
+	"email": "admin",
+	"password": "password"
 }
 ```
-```bash
+Result:
+```json
 {
-  "active": true,
-  "email": "dummy@dummy.net",
-  "exp": 1517194340,
-  "id": 1,
-  "name": "Dummer",
-  "roles": [
-    {
-      "code": "admin",
-      "id": 1,
-      "name": "Admin"
-    }
-  ]
+    "active": true,
+    "customer": {
+        "id": 1
+    },
+    "email": "admin",
+    "exp": 1535940278,
+    "id": 1,
+    "name": "admin",
+    "roles": [
+        {
+            "code": "admin",
+            "id": 1,
+            "name": "Admin"
+        }
+    ]
 }
 ```
 
@@ -118,21 +154,26 @@ Send email & password, get an updated Token.
 
 You must be connected to use this service.
 
-Payload :
-
 ```bash
-POST http://localhost:5000/api/users/reset-password
+POST http://localhost:5001/api/users/reset-password
+```
+Payload:
+```json
 {
-    "email": "admin@myapp.net",
-    "password": "DummyPassword"
+	"email": "admin",
+	"password": "password"
 }
 ```
-```bash
+Result:
+```json
 {
     "active": true,
-    "email": "admin@myapp.net",
+    "customer": {
+        "id": 1
+    },
+    "email": "admin",
     "id": 1,
-    "name": "Admin"
+    "name": "admin"
 }
 ```
 
@@ -143,19 +184,37 @@ Use this web service to create a user.
 You must be connected to use this service.
 
 ```bash
-POST http://localhost:5000/api/users/register
+POST http://localhost:5001/api/users/
+```
+Payload:
+```json
 {
-    "email": "dummy@dummy.net",
-    "password": "JustMyPassword",
-    "name": "Dummy Doe"
+	"email": "admin12",
+	"name": "Admin2",
+	"password": "password",
+	"active": true,
+	"roles": [{
+		"id": 1
+	}]
 }
 ```
-```bash
+Result: 
+```json
 {
-    "email": "dummy@dummy.net",
-    "name": "Dummy Doe"
-    "id": 42,
-    "active": true 
+    "active": true,
+    "customer": {
+        "id": 1
+    },
+    "email": "admin12",
+    "id": 2,
+    "name": "Admin2",
+    "roles": [
+        {
+            "code": "admin",
+            "id": 1,
+            "name": "Admin"
+        }
+    ]
 }
 ```
 
@@ -170,14 +229,26 @@ Past this time, the token is not going to work anymore.
 You must be connected to use this service.
 
 ```bash
-GET http://localhost:5000/api/users/me
+GET http://localhost:5001/api/users/token
 ```
-```bash
+Result:
+```json
 {
-  "email": "dummy@dummy.net", 
-  "exp": 1497989335, 
-  "id": 2, 
-  "name": "Dummy Doe"
+    "active": true,
+    "customer": {
+        "id": 2
+    },
+    "email": "admin",
+    "exp": 1535939156,
+    "id": 1,
+    "name": "admin",
+    "roles": [
+        {
+            "code": "admin",
+            "id": 1,
+            "name": "Admin"
+        }
+    ]
 }
 ```
 
@@ -186,22 +257,27 @@ GET http://localhost:5000/api/users/me
 This service allows to list user in the database.
 You can filter with a LIKE operator on both fields email and name.
 
-You must be connected to use this service.
+You must be connected to use this service. You'll only see the users
+from the same customer than your.
 
 ```bash
-GET http://localhost:5000/api/users/?email=myapp.net&name=admin
+GET http://localhost:5001/api/users/?email=myapp.net&name=admin
 ```
-```bash
+Result:
+```json
 {
-  "has_next": false,
-  "users": [
-    {
-        "active": true,
-        "email": "admin@myapp.net",
-        "id": 1,
-        "name": "Admin"
-    }
-  ]
+    "has_next": false,
+    "users": [
+        {
+            "active": true,
+            "customer": {
+                "id": 1
+            },
+            "email": "admin",
+            "id": 1,
+            "name": "admin"
+        }
+    ]
 }
 ```
 
@@ -210,18 +286,33 @@ GET http://localhost:5000/api/users/?email=myapp.net&name=admin
 Allows to update a user information.
 
 ```bash
-PUT http://localhost:5000/api/users/42
+PUT http://localhost:5001/api/users/3
+```
+Payload:
+```json
 {
-    "email": "dummy@dummy.net",
-    "name": "Dummy Doe",
-    "active": false
+	"email": "admin",
+	"name": "Admin",
+	"password": "password",
+	"active": true
 }
 ```
-```bash
+Result:
+```json
 {
-    "email": "dummy@dummy.net",
-    "name": "Dummy Doe"
-    "id": 42,
-    "active": true 
+    "active": true,
+    "customer": {
+        "id": 1
+    },
+    "email": "admin",
+    "id": 1,
+    "name": "Admin",
+    "roles": [
+        {
+            "code": "admin",
+            "id": 1,
+            "name": "Admin"
+        }
+    ]
 }
 ```

@@ -4,7 +4,7 @@ User API blueprint
 """
 
 import base64
-from flask_utils import (
+from .flask_utils import (
     flask_check_args,
     add_api_error_handler,
     flask_construct_response,
@@ -38,12 +38,26 @@ def construct_user_api_blueprint(flask_user_api):
         response = jsonify(token_payload)
         response.set_cookie(
             u"user-api-credentials",
-            value=base64.b64encode(token.encode(u"utf8")),
+            value=base64.b64encode(token),
             httponly=True,
             expires=token_payload[u"exp"]
         )
 
         return response, 200
+    
+    def get_customer_id(request) -> int:
+        """
+        Returns the customer ID from the flask token.
+        Args:
+            request: The flask object.
+        Returns:
+            (int): The customer ID.
+        """
+        token = flask_user_api.check_token(request)
+        if token is not None:
+            return token["customer"]["id"]
+        return None
+
 
     @user_api_blueprint.route(u'/reset-password', methods=[u'POST'])
     @flask_user_api.is_connected()
@@ -60,7 +74,6 @@ def construct_user_api_blueprint(flask_user_api):
     def reset_password(payload):
         token = flask_user_api.check_token(request)
         token_payload = flask_user_api._user_api.get_token_data(token)
-
         # If connected user different from the one to reset, check admin rights.
         if token_payload[u"email"] != payload.get(u"email"):
             flask_user_api._user_api.token_has_roles(token, [u"admin"])
@@ -70,6 +83,7 @@ def construct_user_api_blueprint(flask_user_api):
 
     @user_api_blueprint.route(u'/', methods=[u"POST"])
     @flask_user_api.has_roles(roles=[u"admin"])
+    @flask_user_api.is_connected()
     @flask_check_and_inject_payload({
         u"email": {
             u"type": u"string",
@@ -89,7 +103,6 @@ def construct_user_api_blueprint(flask_user_api):
         },
         u'roles': {
             u'type': u'list',
-            u"default": [],
             u"required": True,
             u'schema': {
                 u'type': u'dict',
@@ -104,7 +117,11 @@ def construct_user_api_blueprint(flask_user_api):
         }
     })
     def register(payload):
-        return flask_construct_response(flask_user_api._user_api.register(payload), 201)
+        customer_id = get_customer_id(request)
+        return flask_construct_response(
+            flask_user_api._user_api.register(customer_id, payload)
+        , 201)
+
 
     @user_api_blueprint.route(u'/token', methods=[u"GET"])
     @flask_user_api.is_connected()
@@ -149,6 +166,7 @@ def construct_user_api_blueprint(flask_user_api):
         }
     })
     def list_users(args):
+        args["customer_id"] = get_customer_id(request)
         return flask_construct_response(
             flask_user_api._user_api.list_users(**args), 200
         )
@@ -156,8 +174,12 @@ def construct_user_api_blueprint(flask_user_api):
     @user_api_blueprint.route(u'/<int:user_id>', methods=[u"GET"])
     @flask_user_api.has_roles(roles=[u"admin"])
     def get_user(user_id):
+        customer_id = get_customer_id(request)
         return flask_construct_response(
-            flask_user_api._user_api.get_user_information(user_id)
+            flask_user_api._user_api.get_user_information(
+                customer_id,
+                user_id
+            )
         )
 
     @user_api_blueprint.route(u'/<int:user_id>', methods=[u"PUT"])
@@ -199,11 +221,11 @@ def construct_user_api_blueprint(flask_user_api):
         }
     })
     def update(payload, user_id):
-
+        customer_id = get_customer_id(request)
         if u"id" in payload:
             del payload[u"id"]
 
-        result = flask_user_api._user_api.update(payload, user_id)
+        result = flask_user_api._user_api.update(customer_id, user_id, payload)
         return flask_construct_response(result, 200)
 
     add_api_error_handler(user_api_blueprint)

@@ -29,25 +29,26 @@ class FlaskUserApi(object):
             token = m.group(1)
             if m is None or not self._user_api.is_token_valid(token):
                 raise ApiUnauthorized(u"Invalid token.")
-            return token
+            return self._user_api.get_token_data(token)
         elif u"user-api-credentials" in request.cookies:
             decoded_token = base64.b64decode(request.cookies.get(u'user-api-credentials'))
             if not self._user_api.is_token_valid(decoded_token):
                 raise ApiUnauthorized(u"Invalid token.")
-            return decoded_token
+            return self._user_api.get_token_data(decoded_token)
         else:
             if login_url:
                 return redirect(login_url, 302)
             else:
                 raise ApiUnauthorized()
 
-    def is_connected(self, login_url=None):
+    def is_connected(self, login_url=None, inject_token: bool = False):
 
         def decorator(funct):
 
             @wraps(funct)
             def wrapper(*args, **kwargs):
-                self.check_token(request, login_url)
+                if inject_token:
+                    kwargs["token"] = self.check_token(request, login_url)
                 # If all right, do call function
                 ret = funct(*args, **kwargs)
                 return ret
@@ -56,17 +57,23 @@ class FlaskUserApi(object):
 
         return decorator
 
-    def has_roles(self, roles):
+    def has_roles(self, roles, inject_token: bool = False, inject_roles: bool = False):
 
         def decorator(funct):
 
             @wraps(funct)
             def wrapper(*args, **kwargs):
-
+                
+                token = self.check_token(request)
                 self._user_api.token_has_roles(
-                    token=self.check_token(request),
+                    token=token,
                     roles=roles
                 )
+                if inject_token:
+                    kwargs["token"] = token
+
+                if inject_roles:
+                    kwargs["roles"] = roles
 
                 ret = funct(*args, **kwargs)
                 return ret

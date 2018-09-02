@@ -1,13 +1,12 @@
 sudo: false
-langage: python
-cache: pip
+language: python
 python:
-- 2.7
-- 3.5
+  - "3.6"
 install:
-- pip install -r requirements.txt --user
+  - pip3 install -r requirements.txt
 script:
-- pytest tests
+  - pip3 --version
+  - python3 -m pytest tests
 before_deploy: pip install twine --user
 deploy:
   provider: pypi
@@ -19,4 +18,3 @@ deploy:
   on:
     branch: master
     tags: true
-    all_branches: true

@@ -7,6 +7,7 @@ from .db_exception import (
     DBUserConflict,
     DBUserNotFound
 )
+from typing import List
 from .models import User, Role
 from sqlalchemy import exc
 from .db_manager import DBManager
@@ -26,7 +27,7 @@ class DBUserManager(DBManager):
         """
         Constructor.
         Args:
-            url (unicode): The construction URL to connect to the database.
+            url (string): The construction URL to connect to the database.
         """
         DBManager.__init__(self, url)
 
@@ -46,13 +47,16 @@ class DBUserManager(DBManager):
         }
         if with_roles:
             j_user[u"roles"] = [self.to_role_dict(role) for role in user.roles]
+        j_user["customer"] = {
+            "id": user.customer
+        }
         return j_user
 
     def get_user_information(self, user_id, with_roles=False):
         """
         Get the information of the user from his email.
         Args:
-            user_id (unicode||int): The email of the user we want the information.
+            user_id (string||int): The email of the user we want the information.
             with_roles (boolean): Fetch the roles with the user.
 
         Returns:
@@ -82,8 +86,8 @@ class DBUserManager(DBManager):
         """
         Update information for a user.
         Args:
-            email (unicode): The updated email for the user.
-            name (unicode): The updated name for the user.
+            email (string): The updated email for the user.
+            name (string): The updated name for the user.
             active (boolean): The updated status for the use.
             user_id (int): The ID of the user to update.
             roles (list of dict): A list of groups to apply to the user.
@@ -137,10 +141,10 @@ class DBUserManager(DBManager):
         """
         Get the salt for the user.
         Args:
-            email (unicode): The email of the user we want the salt.
+            email (string): The email of the user we want the salt.
 
         Returns:
-            (unicode): The salt.
+            (string): The salt.
         """
         session = self.get_session()
         try:
@@ -155,9 +159,9 @@ class DBUserManager(DBManager):
         """
         Modify the hash / salt for a specific user (email).
         Args:
-            email (unicode): The email of the user to alter.
-            hash (unicode): The hash (password).
-            salt (unicode): The salt associated with the hash before saving.
+            email (string): The email of the user to alter.
+            hash (string): The hash (password).
+            salt (string): The salt associated with the hash before saving.
         """
         session = self.get_session()
         session.query(User)\
@@ -166,16 +170,26 @@ class DBUserManager(DBManager):
 
         session.commit()
 
-    def save_new_user(self, email, name, active, hash, salt, roles):
+    def save_new_user(
+            self, 
+            email: str, 
+            name: str, 
+            active: bool, 
+            hash: str, 
+            salt: str, 
+            roles: List[dict],
+            customer_id: int
+        ):
         """
         Save a new user.
         Args:
-            email (unicode): The email of the user to save.
-            name (unicode): The name of the user.
+            email (string): The email of the user to save.
+            name (string): The name of the user.
             active (boolean): Does the user need to be active or not.
-            hash (unicode): The hash (password).
-            salt (unicode): The salt associated with the hash before saving.
+            hash (string): The hash (password).
+            salt (string): The salt associated with the hash before saving.
             roles (list of dict): List of roles to save.
+            customer_id (int): The customre related to the user.
 
         Raises:
             (ValueError): if user breaks a constraint.
@@ -186,13 +200,16 @@ class DBUserManager(DBManager):
             roles_to_add = session.query(Role).filter(Role.id.in_([
                 role[u"id"] for role in roles
             ])).all()
+
+
             user = User(
                 email=email,
                 name=name,
                 active=active,
                 hash=hash,
                 salt=salt,
-                roles=roles_to_add
+                roles=roles_to_add,
+                customer=customer_id
             )
             session.add(user)
             session.commit()
@@ -205,8 +222,8 @@ class DBUserManager(DBManager):
         """
         Check if a hash is valid.
         Args:
-            email (unicode): The email of the user we are checking the hash.
-            hash (unicode): The hash to test.
+            email (string): The email of the user we are checking the hash.
+            hash (string): The hash to test.
 
         Returns:
             (boolean): If the hash is valid or not.
@@ -216,14 +233,15 @@ class DBUserManager(DBManager):
 
         return False if (user is None or hash != user.hash) else True
 
-    def list_users(self, limit=20, offset=0, email=None, name=None):
+    def list_users(self, customer_id: int, limit=20, offset=0, email=None, name=None):
         """
         List the users from the API.
         Args:
+            customer_id (int): The corresponding customer id.
             limit (int): The max number of returned users.
             offset (int): The cursor.
-            email (unicode): An email to filter on.
-            name (unicode): A name to filter on.
+            email (string): An email to filter on.
+            name (string): A name to filter on.
 
         Returns:
             (list of dict, boolean): A list of user representations. The boolean stands for if there is more to fetch.
@@ -238,6 +256,8 @@ class DBUserManager(DBManager):
         if name is not None:
             filters.append(User.name.like(u"%{}%".format(name)))
 
+        filters.append(User.customer==customer_id)
+        
         users = session.query(User)\
             .options(load_only(*columns), noload(u"roles"))\
             .filter(or_(*filters))\
