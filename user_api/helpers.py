@@ -63,19 +63,21 @@ def init_db(
     engine = create_engine("{}/{}".format(db_url, "user_api", echo=True))
     Base.metadata.create_all(bind=engine)
 
-def add_customer(db_url: str, customer_id: int):
+def add_customer(db_url: str):
     """
     Add a customer in the database.
     Args:
         db_url (str): The connection string to the database.
-        customer_id (int): The customer ID relative to the user.
+    Returns:
+        (int): The created customer id.
     """
     db_url = "{}/{}".format(db_url, "user_api")
     engine = create_engine(db_url, echo=True)
     session = sessionmaker(engine)()
-    customer = Customer(id=customer_id)
+    customer = Customer()
     session.add(customer)
     session.commit()
+    return customer.id
 
 def add_user(
         db_url: str, 
