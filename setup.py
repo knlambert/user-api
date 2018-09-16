@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="user_api", 
-    version="0.5.1",   
+    version="0.6.0",   
     packages=[
         "user_api",
         "user_api.adapter",
