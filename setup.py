@@ -12,7 +12,7 @@ setup(
         "user_api.db"
     ],
     install_requires=[
-        "ecdsa==0.13",
+        "ecdsa==0.13.3",
         "flask>=1.0.2,<2",
         "PyJWT>=1.6.4,<2",
         "SQLAlchemy>=1.2,<2",

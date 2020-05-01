@@ -2,7 +2,7 @@ atomicwrites==1.1.5
 attrs==18.1.0
 Cerberus==1.2
 click==6.7
-ecdsa==0.13
+ecdsa==0.13.3
 Flask==1.0.2
 itsdangerous==0.24
 Jinja2==2.10
