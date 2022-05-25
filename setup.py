@@ -14,7 +14,7 @@ setup(
     install_requires=[
         "ecdsa==0.13.3",
         "flask>=1.0.2,<2",
-        "PyJWT>=1.6.4,<2",
+        "PyJWT>=1.6.4,<3",
         "SQLAlchemy>=1.2,<2",
         "Cerberus>=1.2,<2",
         "pycryptodome>=3.6,<4",

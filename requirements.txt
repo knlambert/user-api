@@ -14,7 +14,7 @@ pbr==4.2.0
 pluggy==0.7.1
 py==1.5.4
 pycryptodome==3.6.6
-PyJWT==1.6.4
+PyJWT==2.4.0
 pytest==3.7.2
 six==1.11.0
 SQLAlchemy==1.2.10
